@@ -2,6 +2,16 @@
 
 A Flutter package that provides a draggable, resizable floating PDF viewer widget with zoom controls and overlay support.
 
+## 📱 Preview
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/raphaelbarbosaqwerty/floating_pdf_viewer/main/example/example_image.png" alt="Floating PDF Viewer Demo" width="300"/>
+</p>
+
+*Floating PDF viewer in action - draggable, resizable window with zoom controls*
+
+> **Note**: See the example app in the `/example` folder for a complete working demo.
+
 ## Features
 
 - ✅ Draggable floating window
