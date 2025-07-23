@@ -1,7 +1,5 @@
 library;
 
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
@@ -238,23 +236,25 @@ class _FloatingPdfViewerState extends State<FloatingPdfViewer> {
                   onPanUpdate: (details) {
                     final screenSize = MediaQuery.of(context).size;
 
-                    // Calculate safe bounds to prevent ArgumentError in clamp
-                    final maxLeft = math.max(
-                      0.0,
-                      screenSize.width - _widthNotifier.value,
-                    );
-                    final maxTop = math.max(
-                      0.0,
-                      screenSize.height - _heightNotifier.value,
-                    );
+                    // Allow widget to move outside screen but keep minimum visible area
+                    // This prevents hiding all control buttons while maintaining original behavior
+                    const minVisibleWidth =
+                        100.0; // Enough to show close button
+                    const minVisibleHeight = 50.0; // Height of header bar
+
+                    final minLeft = -((_widthNotifier.value - minVisibleWidth));
+                    final maxLeft = screenSize.width - minVisibleWidth;
+                    final minTop =
+                        -((_heightNotifier.value - minVisibleHeight));
+                    final maxTop = screenSize.height - minVisibleHeight;
 
                     _leftNotifier.value =
                         (_leftNotifier.value + details.delta.dx).clamp(
-                          0.0,
+                          minLeft,
                           maxLeft,
                         );
                     _topNotifier.value = (_topNotifier.value + details.delta.dy)
-                        .clamp(0.0, maxTop);
+                        .clamp(minTop, maxTop);
                   },
                   onZoomIn: _zoomIn,
                   onZoomOut: _zoomOut,
