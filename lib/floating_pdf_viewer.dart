@@ -1,5 +1,7 @@
 library;
 
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
@@ -9,7 +11,7 @@ import 'package:webview_flutter/webview_flutter.dart';
 /// that displays PDF documents using Google Docs Viewer.
 class FloatingPdfViewer extends StatefulWidget {
   /// Callback function called when the floating viewer is closed
-  final VoidCallback onClose;
+  final VoidCallback? onClose;
 
   /// URL of the PDF to display
   final String pdfUrl;
@@ -46,7 +48,7 @@ class FloatingPdfViewer extends StatefulWidget {
 
   const FloatingPdfViewer({
     super.key,
-    required this.onClose,
+    this.onClose,
     required this.pdfUrl,
     this.initialLeft,
     this.initialTop,
@@ -235,19 +237,30 @@ class _FloatingPdfViewerState extends State<FloatingPdfViewer> {
                   zoomLevelNotifier: _zoomLevelNotifier,
                   onPanUpdate: (details) {
                     final screenSize = MediaQuery.of(context).size;
+
+                    // Calculate safe bounds to prevent ArgumentError in clamp
+                    final maxLeft = math.max(
+                      0.0,
+                      screenSize.width - _widthNotifier.value,
+                    );
+                    final maxTop = math.max(
+                      0.0,
+                      screenSize.height - _heightNotifier.value,
+                    );
+
                     _leftNotifier.value =
                         (_leftNotifier.value + details.delta.dx).clamp(
-                          0,
-                          screenSize.width - _widthNotifier.value,
+                          0.0,
+                          maxLeft,
                         );
                     _topNotifier.value = (_topNotifier.value + details.delta.dy)
-                        .clamp(0, screenSize.height - _heightNotifier.value);
+                        .clamp(0.0, maxTop);
                   },
                   onZoomIn: _zoomIn,
                   onZoomOut: _zoomOut,
                   onResetZoom: _resetZoom,
                   onReload: () => _controller.reload(),
-                  onClose: widget.onClose,
+                  onClose: () => widget.onClose?.call(),
                 ),
                 // WebView content
                 _WebViewContent(
@@ -514,12 +527,19 @@ class FloatingPdfViewerManager {
     double? minHeight,
     double? maxWidth,
     double? maxHeight,
+    VoidCallback? onClose,
   }) {
     if (_overlayEntry != null) return;
 
+    // Combined close function that calls custom callback and then hides the overlay
+    void combinedOnClose() {
+      onClose?.call();
+      hide();
+    }
+
     _overlayEntry = OverlayEntry(
       builder: (context) => FloatingPdfViewer(
-        onClose: hide,
+        onClose: combinedOnClose,
         pdfUrl: pdfUrl,
         title: title,
         headerColor: headerColor,
