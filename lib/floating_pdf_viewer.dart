@@ -66,8 +66,6 @@ class FloatingPdfViewer extends StatefulWidget {
 
 class _FloatingPdfViewerState extends State<FloatingPdfViewer> {
   // UI Constants
-  static const double _kBorderRadius = 12.0;
-  static const double _kElevation = 8.0;
   static const double _kDefaultInitialLeft = 50.0;
   static const double _kDefaultInitialTop = 100.0;
   static const double _kDefaultZoomLevel = 1.0;
@@ -188,7 +186,38 @@ class _FloatingPdfViewerState extends State<FloatingPdfViewer> {
           top: _topNotifier.value,
           child: Stack(
             children: [
-              _buildWebViewContainer(),
+              _FloatingContainer(
+                widthNotifier: _widthNotifier,
+                heightNotifier: _heightNotifier,
+                title: widget.title,
+                headerColor: widget.headerColor,
+                zoomLevelNotifier: _zoomLevelNotifier,
+                controller: _controller,
+                isLoadingNotifier: _isLoadingNotifier,
+                onPanUpdate: (details) {
+                  final screenSize = MediaQuery.of(context).size;
+
+                  // Allow widget to move outside screen but keep minimum visible area
+                  // This prevents hiding all control buttons while maintaining original behavior
+                  const minVisibleWidth = 100.0; // Enough to show close button
+                  const minVisibleHeight = 50.0; // Height of header bar
+
+                  final minLeft = -((_widthNotifier.value - minVisibleWidth));
+                  final maxLeft = screenSize.width - minVisibleWidth;
+                  final minTop = -((_heightNotifier.value - minVisibleHeight));
+                  final maxTop = screenSize.height - minVisibleHeight;
+
+                  _leftNotifier.value = (_leftNotifier.value + details.delta.dx)
+                      .clamp(minLeft, maxLeft);
+                  _topNotifier.value = (_topNotifier.value + details.delta.dy)
+                      .clamp(minTop, maxTop);
+                },
+                onZoomIn: _zoomIn,
+                onZoomOut: _zoomOut,
+                onResetZoom: _resetZoom,
+                onReload: () => _controller.reload(),
+                onClose: () => widget.onClose?.call(),
+              ),
               // Resize handle
               _ResizeHandle(
                 headerColor: widget.headerColor,
@@ -212,69 +241,6 @@ class _FloatingPdfViewerState extends State<FloatingPdfViewer> {
     );
   }
 
-  Widget _buildWebViewContainer() {
-    return AnimatedBuilder(
-      animation: Listenable.merge([_widthNotifier, _heightNotifier]),
-      builder: (context, child) {
-        return Material(
-          elevation: _kElevation,
-          borderRadius: BorderRadius.circular(_kBorderRadius),
-          child: Container(
-            width: _widthNotifier.value,
-            height: _heightNotifier.value,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(_kBorderRadius),
-              color: Colors.white,
-            ),
-            child: Column(
-              children: [
-                // Header bar (draggable)
-                _HeaderBar(
-                  title: widget.title,
-                  headerColor: widget.headerColor,
-                  zoomLevelNotifier: _zoomLevelNotifier,
-                  onPanUpdate: (details) {
-                    final screenSize = MediaQuery.of(context).size;
-
-                    // Allow widget to move outside screen but keep minimum visible area
-                    // This prevents hiding all control buttons while maintaining original behavior
-                    const minVisibleWidth =
-                        100.0; // Enough to show close button
-                    const minVisibleHeight = 50.0; // Height of header bar
-
-                    final minLeft = -((_widthNotifier.value - minVisibleWidth));
-                    final maxLeft = screenSize.width - minVisibleWidth;
-                    final minTop =
-                        -((_heightNotifier.value - minVisibleHeight));
-                    final maxTop = screenSize.height - minVisibleHeight;
-
-                    _leftNotifier.value =
-                        (_leftNotifier.value + details.delta.dx).clamp(
-                          minLeft,
-                          maxLeft,
-                        );
-                    _topNotifier.value = (_topNotifier.value + details.delta.dy)
-                        .clamp(minTop, maxTop);
-                  },
-                  onZoomIn: _zoomIn,
-                  onZoomOut: _zoomOut,
-                  onResetZoom: _resetZoom,
-                  onReload: () => _controller.reload(),
-                  onClose: () => widget.onClose?.call(),
-                ),
-                // WebView content
-                _WebViewContent(
-                  controller: _controller,
-                  isLoadingNotifier: _isLoadingNotifier,
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
   @override
   void dispose() {
     _leftNotifier.dispose();
@@ -284,6 +250,85 @@ class _FloatingPdfViewerState extends State<FloatingPdfViewer> {
     _zoomLevelNotifier.dispose();
     _isLoadingNotifier.dispose();
     super.dispose();
+  }
+}
+
+/// Floating container widget for the PDF viewer
+class _FloatingContainer extends StatelessWidget {
+  // UI Constants
+  static const double _kBorderRadius = 12.0;
+  static const double _kElevation = 8.0;
+
+  final ValueNotifier<double> widthNotifier;
+  final ValueNotifier<double> heightNotifier;
+  final String? title;
+  final Color? headerColor;
+  final ValueNotifier<double> zoomLevelNotifier;
+  final WebViewController controller;
+  final ValueNotifier<bool> isLoadingNotifier;
+  final Function(DragUpdateDetails) onPanUpdate;
+  final VoidCallback onZoomIn;
+  final VoidCallback onZoomOut;
+  final VoidCallback onResetZoom;
+  final VoidCallback onReload;
+  final VoidCallback onClose;
+
+  const _FloatingContainer({
+    required this.widthNotifier,
+    required this.heightNotifier,
+    required this.title,
+    required this.headerColor,
+    required this.zoomLevelNotifier,
+    required this.controller,
+    required this.isLoadingNotifier,
+    required this.onPanUpdate,
+    required this.onZoomIn,
+    required this.onZoomOut,
+    required this.onResetZoom,
+    required this.onReload,
+    required this.onClose,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: Listenable.merge([widthNotifier, heightNotifier]),
+      builder: (context, child) {
+        return Material(
+          elevation: _kElevation,
+          borderRadius: BorderRadius.circular(_kBorderRadius),
+          child: Container(
+            width: widthNotifier.value,
+            height: heightNotifier.value,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(_kBorderRadius),
+              color: Colors.white,
+            ),
+            child: Column(
+              children: [
+                // Header bar (draggable)
+                _HeaderBar(
+                  title: title,
+                  headerColor: headerColor,
+                  zoomLevelNotifier: zoomLevelNotifier,
+                  onPanUpdate: onPanUpdate,
+                  onZoomIn: onZoomIn,
+                  onZoomOut: onZoomOut,
+                  onResetZoom: onResetZoom,
+                  onReload: onReload,
+                  onClose: onClose,
+                ),
+                // WebView content
+                _WebViewContent(
+                  controller: controller,
+                  isLoadingNotifier: isLoadingNotifier,
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 }
 
