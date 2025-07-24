@@ -3,6 +3,130 @@ library;
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
+/// Configuration options for the FloatingPdfViewer widget.
+///
+/// This class groups all the customization options for the floating PDF viewer
+/// in an immutable data class, following Flutter best practices.
+class FloatingPdfViewerOptions {
+  /// Initial position of the floating viewer (left offset)
+  final double initialLeft;
+
+  /// Initial position of the floating viewer (top offset)
+  final double initialTop;
+
+  /// Initial width of the floating viewer
+  final double initialWidth;
+
+  /// Initial height of the floating viewer
+  final double initialHeight;
+
+  /// Title displayed in the header bar
+  final String? title;
+
+  /// Color of the header bar
+  final Color? headerColor;
+
+  /// Minimum width for resizing
+  final double minWidth;
+
+  /// Minimum height for resizing
+  final double minHeight;
+
+  /// Maximum width for resizing
+  final double maxWidth;
+
+  /// Maximum height for resizing
+  final double maxHeight;
+
+  const FloatingPdfViewerOptions({
+    this.initialLeft = 50.0,
+    this.initialTop = 100.0,
+    this.initialWidth = 350.0,
+    this.initialHeight = 500.0,
+    this.title,
+    this.headerColor,
+    this.minWidth = 300.0,
+    this.minHeight = 250.0,
+    this.maxWidth = 600.0,
+    this.maxHeight = 800.0,
+  });
+
+  /// Creates a copy of this [FloatingPdfViewerOptions] with the given fields replaced with new values.
+  FloatingPdfViewerOptions copyWith({
+    double? initialLeft,
+    double? initialTop,
+    double? initialWidth,
+    double? initialHeight,
+    String? title,
+    Color? headerColor,
+    double? minWidth,
+    double? minHeight,
+    double? maxWidth,
+    double? maxHeight,
+  }) {
+    return FloatingPdfViewerOptions(
+      initialLeft: initialLeft ?? this.initialLeft,
+      initialTop: initialTop ?? this.initialTop,
+      initialWidth: initialWidth ?? this.initialWidth,
+      initialHeight: initialHeight ?? this.initialHeight,
+      title: title ?? this.title,
+      headerColor: headerColor ?? this.headerColor,
+      minWidth: minWidth ?? this.minWidth,
+      minHeight: minHeight ?? this.minHeight,
+      maxWidth: maxWidth ?? this.maxWidth,
+      maxHeight: maxHeight ?? this.maxHeight,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is FloatingPdfViewerOptions &&
+        other.initialLeft == initialLeft &&
+        other.initialTop == initialTop &&
+        other.initialWidth == initialWidth &&
+        other.initialHeight == initialHeight &&
+        other.title == title &&
+        other.headerColor == headerColor &&
+        other.minWidth == minWidth &&
+        other.minHeight == minHeight &&
+        other.maxWidth == maxWidth &&
+        other.maxHeight == maxHeight;
+  }
+
+  @override
+  int get hashCode {
+    return Object.hash(
+      initialLeft,
+      initialTop,
+      initialWidth,
+      initialHeight,
+      title,
+      headerColor,
+      minWidth,
+      minHeight,
+      maxWidth,
+      maxHeight,
+    );
+  }
+
+  @override
+  String toString() {
+    return 'FloatingPdfViewerOptions('
+        'initialLeft: $initialLeft, '
+        'initialTop: $initialTop, '
+        'initialWidth: $initialWidth, '
+        'initialHeight: $initialHeight, '
+        'title: $title, '
+        'headerColor: $headerColor, '
+        'minWidth: $minWidth, '
+        'minHeight: $minHeight, '
+        'maxWidth: $maxWidth, '
+        'maxHeight: $maxHeight'
+        ')';
+  }
+}
+
 /// A floating PDF viewer widget that can be displayed as an overlay.
 ///
 /// This widget creates a draggable, resizable floating window with a WebView
@@ -14,50 +138,14 @@ class FloatingPdfViewer extends StatefulWidget {
   /// URL of the PDF to display
   final String pdfUrl;
 
-  /// Initial position of the floating viewer (left offset)
-  final double? initialLeft;
-
-  /// Initial position of the floating viewer (top offset)
-  final double? initialTop;
-
-  /// Initial width of the floating viewer
-  final double? initialWidth;
-
-  /// Initial height of the floating viewer
-  final double? initialHeight;
-
-  /// Title displayed in the header bar
-  final String? title;
-
-  /// Color of the header bar
-  final Color? headerColor;
-
-  /// Minimum width for resizing
-  final double? minWidth;
-
-  /// Minimum height for resizing
-  final double? minHeight;
-
-  /// Maximum width for resizing
-  final double? maxWidth;
-
-  /// Maximum height for resizing
-  final double? maxHeight;
+  /// Configuration options for the floating PDF viewer
+  final FloatingPdfViewerOptions options;
 
   const FloatingPdfViewer({
     super.key,
     this.onClose,
     required this.pdfUrl,
-    this.initialLeft,
-    this.initialTop,
-    this.initialWidth,
-    this.initialHeight,
-    this.title,
-    this.headerColor,
-    this.minWidth,
-    this.minHeight,
-    this.maxWidth,
-    this.maxHeight,
+    this.options = const FloatingPdfViewerOptions(),
   });
 
   @override
@@ -66,17 +154,7 @@ class FloatingPdfViewer extends StatefulWidget {
 
 class _FloatingPdfViewerState extends State<FloatingPdfViewer> {
   // UI Constants
-  static const double _kDefaultInitialLeft = 50.0;
-  static const double _kDefaultInitialTop = 100.0;
   static const double _kDefaultZoomLevel = 1.0;
-
-  // Default size values
-  static const double _defaultWidth = 350.0;
-  static const double _defaultHeight = 500.0;
-  static const double _defaultMinWidth = 300.0;
-  static const double _defaultMinHeight = 250.0;
-  static const double _defaultMaxWidth = 600.0;
-  static const double _defaultMaxHeight = 800.0;
 
   // Zoom limits
   static const double _minZoom = 0.5;
@@ -101,10 +179,10 @@ class _FloatingPdfViewerState extends State<FloatingPdfViewer> {
   }
 
   void _initializeNotifiers() {
-    _leftNotifier = ValueNotifier(widget.initialLeft ?? _kDefaultInitialLeft);
-    _topNotifier = ValueNotifier(widget.initialTop ?? _kDefaultInitialTop);
-    _widthNotifier = ValueNotifier(widget.initialWidth ?? _defaultWidth);
-    _heightNotifier = ValueNotifier(widget.initialHeight ?? _defaultHeight);
+    _leftNotifier = ValueNotifier(widget.options.initialLeft);
+    _topNotifier = ValueNotifier(widget.options.initialTop);
+    _widthNotifier = ValueNotifier(widget.options.initialWidth);
+    _heightNotifier = ValueNotifier(widget.options.initialHeight);
     _zoomLevelNotifier = ValueNotifier(_kDefaultZoomLevel);
     _isLoadingNotifier = ValueNotifier(true);
   }
@@ -189,8 +267,8 @@ class _FloatingPdfViewerState extends State<FloatingPdfViewer> {
               _FloatingContainer(
                 widthNotifier: _widthNotifier,
                 heightNotifier: _heightNotifier,
-                title: widget.title,
-                headerColor: widget.headerColor,
+                title: widget.options.title,
+                headerColor: widget.options.headerColor,
                 zoomLevelNotifier: _zoomLevelNotifier,
                 controller: _controller,
                 isLoadingNotifier: _isLoadingNotifier,
@@ -220,17 +298,17 @@ class _FloatingPdfViewerState extends State<FloatingPdfViewer> {
               ),
               // Resize handle
               _ResizeHandle(
-                headerColor: widget.headerColor,
+                headerColor: widget.options.headerColor,
                 onPanUpdate: (details) {
                   _widthNotifier.value =
                       (_widthNotifier.value + details.delta.dx).clamp(
-                        widget.minWidth ?? _defaultMinWidth,
-                        widget.maxWidth ?? _defaultMaxWidth,
+                        widget.options.minWidth,
+                        widget.options.maxWidth,
                       );
                   _heightNotifier.value =
                       (_heightNotifier.value + details.delta.dy).clamp(
-                        widget.minHeight ?? _defaultMinHeight,
-                        widget.maxHeight ?? _defaultMaxHeight,
+                        widget.options.minHeight,
+                        widget.options.maxHeight,
                       );
                 },
               ),
@@ -559,19 +637,15 @@ class FloatingPdfViewerManager {
   bool _isVisible = false;
 
   /// Shows a floating PDF viewer overlay
+  ///
+  /// [context] - The build context for inserting the overlay
+  /// [pdfUrl] - The URL of the PDF to display
+  /// [options] - Configuration options for the floating viewer. If null, default options are used
+  /// [onClose] - Optional callback called when the floating viewer is closed
   void show({
     required BuildContext context,
     required String pdfUrl,
-    String? title,
-    Color? headerColor,
-    double? initialLeft,
-    double? initialTop,
-    double? initialWidth,
-    double? initialHeight,
-    double? minWidth,
-    double? minHeight,
-    double? maxWidth,
-    double? maxHeight,
+    FloatingPdfViewerOptions? options,
     VoidCallback? onClose,
   }) {
     if (_overlayEntry != null) return;
@@ -586,16 +660,7 @@ class FloatingPdfViewerManager {
       builder: (context) => FloatingPdfViewer(
         onClose: combinedOnClose,
         pdfUrl: pdfUrl,
-        title: title,
-        headerColor: headerColor,
-        initialLeft: initialLeft,
-        initialTop: initialTop,
-        initialWidth: initialWidth,
-        initialHeight: initialHeight,
-        minWidth: minWidth,
-        minHeight: minHeight,
-        maxWidth: maxWidth,
-        maxHeight: maxHeight,
+        options: options ?? const FloatingPdfViewerOptions(),
       ),
     );
 
