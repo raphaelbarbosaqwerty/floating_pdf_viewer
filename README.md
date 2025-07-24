@@ -2,6 +2,8 @@
 
 A Flutter package that provides a draggable, resizable floating PDF viewer widget with zoom controls and overlay support.
 
+> **🆕 Version 0.1.0**: Now with a cleaner API using `FloatingPdfViewerOptions` for better maintainability and type safety!
+
 ## 📱 Preview
 
 <p align="center">
@@ -22,6 +24,10 @@ A Flutter package that provides a draggable, resizable floating PDF viewer widge
 - ✅ Automatic overlay management
 - ✅ Reload button
 - ✅ Easy integration
+- ✅ **New in v0.1.0**: Clean API with `FloatingPdfViewerOptions`
+- ✅ **New in v0.1.0**: `copyWith()` method for easy configuration
+- ✅ **New in v0.1.0**: Organized package structure
+- ✅ **New in v0.1.0**: Better maintainability and type safety
 
 ## Installation
 
@@ -29,7 +35,7 @@ Add this package to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  floating_pdf_viewer: ^0.0.1
+  floating_pdf_viewer: ^0.1.0
 ```
 
 ## Quick Start
@@ -55,7 +61,9 @@ class _MyPageState extends State<MyPage> {
             _pdfManager.show(
               context: context,
               pdfUrl: 'https://www.example.com/your-document.pdf',
-              title: 'My Document',
+              options: const FloatingPdfViewerOptions(
+                title: 'My Document',
+              ),
             );
           },
           child: Text('Open PDF'),
@@ -110,8 +118,10 @@ class _HomePageState extends State<HomePage> {
               _pdfManager.show(
                 context: context,
                 pdfUrl: 'https://www.example.com/sample.pdf',
-                title: 'My PDF',
-                headerColor: Colors.deepPurple,
+                options: const FloatingPdfViewerOptions(
+                  title: 'My PDF',
+                  headerColor: Colors.deepPurple,
+                ),
               );
             }
           },
@@ -143,12 +153,14 @@ class _MyHomePageState extends State<MyHomePage> {
       builder: (context) => FloatingPdfViewer(
         pdfUrl: 'https://www.example.com/sample.pdf',
         onClose: _hideOverlay,
-        title: 'PDF Document',
-        headerColor: Colors.green,
-        initialLeft: 100,
-        initialTop: 150,
-        initialWidth: 400,
-        initialHeight: 600,
+        options: const FloatingPdfViewerOptions(
+          title: 'PDF Document',
+          headerColor: Colors.green,
+          initialLeft: 100,
+          initialTop: 150,
+          initialWidth: 400,
+          initialHeight: 600,
+        ),
       ),
     );
 
@@ -180,26 +192,33 @@ class _MyHomePageState extends State<MyHomePage> {
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `onClose` | `VoidCallback` | ✅ | Callback executed when closing the viewer |
 | `pdfUrl` | `String` | ✅ | URL of the PDF to display |
-| `title` | `String?` | ❌ | Title displayed in the header bar |
-| `headerColor` | `Color?` | ❌ | Color of the header bar |
-| `initialLeft` | `double?` | ❌ | Initial horizontal position |
-| `initialTop` | `double?` | ❌ | Initial vertical position |
-| `initialWidth` | `double?` | ❌ | Initial width (default: 350) |
-| `initialHeight` | `double?` | ❌ | Initial height (default: 500) |
-| `minWidth` | `double?` | ❌ | Minimum width (default: 300) |
-| `minHeight` | `double?` | ❌ | Minimum height (default: 250) |
-| `maxWidth` | `double?` | ❌ | Maximum width (default: 600) |
-| `maxHeight` | `double?` | ❌ | Maximum height (default: 800) |
+| `onClose` | `VoidCallback?` | ❌ | Callback executed when closing the viewer |
+| `options` | `FloatingPdfViewerOptions` | ❌ | Configuration options (uses defaults if not provided) |
+
+### FloatingPdfViewerOptions
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `title` | `String?` | `null` | Title displayed in the header bar |
+| `headerColor` | `Color?` | `null` | Color of the header bar |
+| `initialLeft` | `double` | `50.0` | Initial horizontal position |
+| `initialTop` | `double` | `100.0` | Initial vertical position |
+| `initialWidth` | `double` | `350.0` | Initial width |
+| `initialHeight` | `double` | `500.0` | Initial height |
+| `minWidth` | `double` | `300.0` | Minimum width for resizing |
+| `minHeight` | `double` | `250.0` | Minimum height for resizing |
+| `maxWidth` | `double` | `600.0` | Maximum width for resizing |
+| `maxHeight` | `double` | `800.0` | Maximum height for resizing |
 
 ### FloatingPdfViewerManager.show()
-
-Accepts the same parameters as `FloatingPdfViewer`, plus:
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `context` | `BuildContext` | ✅ | Context to insert the overlay |
+| `pdfUrl` | `String` | ✅ | URL of the PDF to display |
+| `options` | `FloatingPdfViewerOptions?` | ❌ | Configuration options (uses defaults if not provided) |
+| `onClose` | `VoidCallback?` | ❌ | Optional callback called when the floating viewer is closed |
 
 ## Advanced Examples
 
@@ -209,16 +228,18 @@ Accepts the same parameters as `FloatingPdfViewer`, plus:
 _pdfManager.show(
   context: context,
   pdfUrl: 'https://www.example.com/document.pdf',
-  title: 'Monthly Report',
-  headerColor: Colors.indigo,
-  initialLeft: 200,
-  initialTop: 100,
-  initialWidth: 450,
-  initialHeight: 650,
-  minWidth: 350,
-  maxWidth: 700,
-  minHeight: 400,
-  maxHeight: 900,
+  options: const FloatingPdfViewerOptions(
+    title: 'Monthly Report',
+    headerColor: Colors.indigo,
+    initialLeft: 200,
+    initialTop: 100,
+    initialWidth: 450,
+    initialHeight: 650,
+    minWidth: 350,
+    maxWidth: 700,
+    minHeight: 400,
+    maxHeight: 900,
+  ),
 );
 ```
 
@@ -238,8 +259,10 @@ class _MyPageState extends State<MyPage> {
             onPressed: () => _pdfManager1.show(
               context: context,
               pdfUrl: 'https://example.com/doc1.pdf',
-              title: 'Document 1',
-              headerColor: Colors.blue,
+              options: const FloatingPdfViewerOptions(
+                title: 'Document 1',
+                headerColor: Colors.blue,
+              ),
             ),
             child: Text('Open PDF 1'),
           ),
@@ -247,9 +270,11 @@ class _MyPageState extends State<MyPage> {
             onPressed: () => _pdfManager2.show(
               context: context,
               pdfUrl: 'https://example.com/doc2.pdf',
-              title: 'Document 2',
-              headerColor: Colors.red,
-              initialLeft: 300,
+              options: const FloatingPdfViewerOptions(
+                title: 'Document 2',
+                headerColor: Colors.red,
+                initialLeft: 300,
+              ),
             ),
             child: Text('Open PDF 2'),
           ),
@@ -266,6 +291,131 @@ class _MyPageState extends State<MyPage> {
   }
 }
 ```
+
+### Using copyWith for Option Modification
+
+The `FloatingPdfViewerOptions` class includes a convenient `copyWith` method for modifying existing configurations:
+
+```dart
+// Base configuration
+const baseOptions = FloatingPdfViewerOptions(
+  title: 'Base Document',
+  headerColor: Colors.blue,
+  initialWidth: 400,
+  initialHeight: 500,
+);
+
+// Create modified version
+final customOptions = baseOptions.copyWith(
+  title: 'Modified Document',
+  headerColor: Colors.red,
+  initialLeft: 150,
+  // All other properties remain the same
+);
+
+_pdfManager.show(
+  context: context,
+  pdfUrl: 'https://example.com/document.pdf',
+  options: customOptions,
+);
+```
+
+### Predefined Option Sets
+
+You can create predefined option sets for consistent styling:
+
+```dart
+class PdfStyles {
+  static const FloatingPdfViewerOptions compact = FloatingPdfViewerOptions(
+    initialWidth: 300,
+    initialHeight: 400,
+    maxWidth: 500,
+    maxHeight: 600,
+  );
+
+  static const FloatingPdfViewerOptions large = FloatingPdfViewerOptions(
+    initialWidth: 500,
+    initialHeight: 700,
+    maxWidth: 800,
+    maxHeight: 1000,
+  );
+
+  static const FloatingPdfViewerOptions darkTheme = FloatingPdfViewerOptions(
+    headerColor: Colors.grey[800],
+    title: 'Document',
+  );
+}
+
+// Usage
+_pdfManager.show(
+  context: context,
+  pdfUrl: 'https://example.com/small-doc.pdf',
+  options: PdfStyles.compact.copyWith(title: 'Small Document'),
+);
+```
+
+## Breaking Changes in v0.1.0
+
+**⚠️ BREAKING CHANGE**: The API has been redesigned for better maintainability and cleaner code.
+
+### Migration from v0.0.x
+
+**Old API (v0.0.x):**
+
+```dart
+_pdfManager.show(
+  context: context,
+  pdfUrl: 'url',
+  title: 'Document',
+  headerColor: Colors.blue,
+  initialLeft: 100,
+  initialTop: 150,
+  // ... many individual parameters
+);
+```
+
+**New API (v0.1.0+):**
+
+```dart
+_pdfManager.show(
+  context: context,
+  pdfUrl: 'url',
+  options: const FloatingPdfViewerOptions(
+    title: 'Document',
+    headerColor: Colors.blue,
+    initialLeft: 100,
+    initialTop: 150,
+    // all options grouped together
+  ),
+);
+```
+
+### Benefits of the New API
+
+- ✅ **Cleaner constructor**: One `options` parameter instead of 10+ individual parameters
+- ✅ **Better maintainability**: Easier to add new configuration options
+- ✅ **Immutable configuration**: `FloatingPdfViewerOptions` is immutable and includes `copyWith()`
+- ✅ **Type safety**: Better IDE support and error detection
+- ✅ **Flutter patterns**: Follows conventions used by `TextStyle`, `ButtonStyle`, etc.
+
+## Package Structure
+
+The package is now organized following Flutter best practices:
+
+```
+lib/
+├── floating_pdf_viewer.dart         # 📦 Main export file
+└── src/
+    ├── options.dart                 # ⚙️  FloatingPdfViewerOptions
+    ├── manager.dart                 # 🎛️  FloatingPdfViewerManager
+    ├── floating_pdf_viewer_widget.dart # 🪟 Main FloatingPdfViewer widget
+    └── internal_widgets.dart        # 🔧 Internal widgets (not exported)
+```
+
+- **Clean API**: Only public classes are exported from the main file
+- **Organized code**: Each class has its own focused file
+- **Maintainable**: Internal widgets are separated and not exposed
+- **Best practices**: Follows Flutter package structure conventions
 
 ## Requirements
 
