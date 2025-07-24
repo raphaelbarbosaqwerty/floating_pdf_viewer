@@ -81,8 +81,10 @@ class _MyHomePageState extends State<MyHomePage> {
                             context: context,
                             pdfUrl:
                                 '***REMOVED***',
-                            title: 'Sample Document',
-                            headerColor: Colors.blue,
+                            options: const FloatingPdfViewerOptions(
+                              title: 'Sample Document',
+                              headerColor: Colors.blue,
+                            ),
                           );
                         }
                       },
@@ -125,14 +127,16 @@ class _MyHomePageState extends State<MyHomePage> {
                             context: context,
                             pdfUrl:
                                 '***REMOVED***',
-                            title: 'Custom PDF',
-                            headerColor: Colors.green,
-                            initialLeft: 200,
-                            initialTop: 150,
-                            initialWidth: 400,
-                            initialHeight: 600,
-                            minWidth: 350,
-                            maxWidth: 500,
+                            options: const FloatingPdfViewerOptions(
+                              title: 'Custom PDF',
+                              headerColor: Colors.green,
+                              initialLeft: 200,
+                              initialTop: 150,
+                              initialWidth: 400,
+                              initialHeight: 600,
+                              minWidth: 350,
+                              maxWidth: 500,
+                            ),
                           );
                         }
                       },
@@ -188,6 +192,57 @@ class _MyHomePageState extends State<MyHomePage> {
               ),
             ),
 
+            const SizedBox(height: 20),
+
+            // Example 4: Demonstrating copyWith
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  children: [
+                    const Text(
+                      'Example 4: Using copyWith',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        // Base options
+                        const baseOptions = FloatingPdfViewerOptions(
+                          title: 'Base PDF',
+                          headerColor: Colors.purple,
+                          initialWidth: 300,
+                          initialHeight: 400,
+                        );
+
+                        // Modified options using copyWith
+                        final customOptions = baseOptions.copyWith(
+                          title: 'Modified PDF',
+                          initialLeft: 250,
+                          initialTop: 200,
+                        );
+
+                        _pdfManager.show(
+                          context: context,
+                          pdfUrl:
+                              '***REMOVED***',
+                          options: customOptions,
+                        );
+                      },
+                      icon: const Icon(Icons.copy),
+                      label: const Text('CopyWith Example'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.purple,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
             const SizedBox(height: 30),
 
             const Text(
@@ -195,7 +250,11 @@ class _MyHomePageState extends State<MyHomePage> {
               '• Document viewing\n'
               '• Contracts and forms\n'
               '• Manuals and guides\n'
-              '• Reports',
+              '• Reports\n\n'
+              'New features:\n'
+              '• Cleaner API with options class\n'
+              '• Easy configuration with copyWith\n'
+              '• Better maintainability',
               style: TextStyle(fontSize: 16),
               textAlign: TextAlign.center,
             ),
@@ -214,12 +273,14 @@ class _MyHomePageState extends State<MyHomePage> {
         pdfUrl:
             '***REMOVED***',
         onClose: _hideManualOverlay,
-        title: 'Manual Overlay',
-        headerColor: Colors.orange,
-        initialLeft: 100,
-        initialTop: 100,
-        initialWidth: 350,
-        initialHeight: 500,
+        options: const FloatingPdfViewerOptions(
+          title: 'Manual Overlay',
+          headerColor: Colors.orange,
+          initialLeft: 100,
+          initialTop: 100,
+          initialWidth: 350,
+          initialHeight: 500,
+        ),
       ),
     );
 

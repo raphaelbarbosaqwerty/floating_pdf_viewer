@@ -47,8 +47,10 @@ class HomePageState extends State<HomePage> {
                     context: context,
                     pdfUrl:
                         'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-                    title: 'Sample PDF',
-                    headerColor: Colors.blue,
+                    options: const FloatingPdfViewerOptions(
+                      title: 'Sample PDF',
+                      headerColor: Colors.blue,
+                    ),
                   );
                 }
               },

@@ -1,3 +1,18 @@
+## 0.1.0
+
+* **BREAKING CHANGE**: Introduced `FloatingPdfViewerOptions` class for cleaner API
+  * Replaced multiple individual parameters with a single `options` parameter
+  * All configuration options now grouped in an immutable data class
+  * Added `copyWith()` method for easy option modifications
+  * Added proper `toString()`, `==`, and `hashCode` implementations
+* **Enhancement**: Improved API design following Flutter best practices
+* **Enhancement**: Better maintainability and extensibility for future options
+* **Enhancement**: Reduced constructor verbosity from 10+ parameters to single options object
+* **Documentation**: Updated all examples to demonstrate new `FloatingPdfViewerOptions` usage
+* **Documentation**: Added copyWith usage example in main demo
+* **Testing**: Added comprehensive tests for `FloatingPdfViewerOptions` class
+* **Migration**: Previous API still supported through default options constructor
+
 ## 0.0.2
 
 * **Bug Fix**: Fixed ArgumentError when resizing floating window to dimensions larger than screen
