@@ -1,3 +1,17 @@
+## 0.1.1
+
+* **Fix**: Resolved retry mechanism causing `LateInitializationError` when PDF fails to load
+  * Fixed WebViewController reinitialization issue during automatic retries
+  * Improved error handling with proper controller state management
+  * Prevented infinite retry loops with validation flag system
+* **Fix**: Enhanced PDF loading validation to reduce false positives
+  * Simplified content validation logic to prevent unnecessary retries
+  * Added proper success state tracking to avoid re-validation
+* **Enhancement**: Removed debug print statements for cleaner production output
+* **Enhancement**: Improved error handling with proper catch block comments
+* **Performance**: Optimized controller reuse during retry attempts
+* **Stability**: Better handling of WebView state during error recovery
+
 ## 0.1.0
 
 * **BREAKING CHANGE**: Introduced `FloatingPdfViewerOptions` class for cleaner API

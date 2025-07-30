@@ -14,6 +14,7 @@ class FloatingContainer extends StatelessWidget {
   final ValueNotifier<double> zoomLevelNotifier;
   final WebViewController controller;
   final ValueNotifier<bool> isLoadingNotifier;
+  final ValueNotifier<bool> hasErrorNotifier;
   final Function(DragUpdateDetails) onPanUpdate;
   final VoidCallback onZoomIn;
   final VoidCallback onZoomOut;
@@ -30,6 +31,7 @@ class FloatingContainer extends StatelessWidget {
     required this.zoomLevelNotifier,
     required this.controller,
     required this.isLoadingNotifier,
+    required this.hasErrorNotifier,
     required this.onPanUpdate,
     required this.onZoomIn,
     required this.onZoomOut,
@@ -71,6 +73,7 @@ class FloatingContainer extends StatelessWidget {
                 WebViewContent(
                   controller: controller,
                   isLoadingNotifier: isLoadingNotifier,
+                  hasErrorNotifier: hasErrorNotifier,
                 ),
               ],
             ),
@@ -231,11 +234,13 @@ class WebViewContent extends StatelessWidget {
 
   final WebViewController controller;
   final ValueNotifier<bool> isLoadingNotifier;
+  final ValueNotifier<bool> hasErrorNotifier;
 
   const WebViewContent({
     super.key,
     required this.controller,
     required this.isLoadingNotifier,
+    required this.hasErrorNotifier,
   });
 
   @override
@@ -249,13 +254,59 @@ class WebViewContent extends StatelessWidget {
         child: Stack(
           children: [
             WebViewWidget(controller: controller),
+            // Loading indicator
             ValueListenableBuilder<bool>(
               valueListenable: isLoadingNotifier,
               builder: (context, isLoading, child) {
                 if (!isLoading) return const SizedBox.shrink();
                 return Container(
                   color: Colors.white,
-                  child: const Center(child: CircularProgressIndicator()),
+                  child: const Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        CircularProgressIndicator(),
+                        SizedBox(height: 16),
+                        Text(
+                          'Loading PDF...',
+                          style: TextStyle(fontSize: 14, color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+            // Error indicator
+            ValueListenableBuilder<bool>(
+              valueListenable: hasErrorNotifier,
+              builder: (context, hasError, child) {
+                if (!hasError) return const SizedBox.shrink();
+                return Container(
+                  color: Colors.white,
+                  child: const Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.error_outline, size: 48, color: Colors.red),
+                        SizedBox(height: 16),
+                        Text(
+                          'Failed to load PDF',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.red,
+                          ),
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          'Click the refresh button to try again',
+                          style: TextStyle(fontSize: 14, color: Colors.grey),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  ),
                 );
               },
             ),
