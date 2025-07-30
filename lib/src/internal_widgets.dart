@@ -4,8 +4,8 @@ import 'package:webview_flutter/webview_flutter.dart';
 /// Floating container widget for the PDF viewer
 class FloatingContainer extends StatelessWidget {
   // UI Constants
-  static const double kBorderRadius = 12.0;
-  static const double kElevation = 8.0;
+  static const double _borderRadius = 12.0;
+  static const double _elevation = 8.0;
 
   final ValueNotifier<double> widthNotifier;
   final ValueNotifier<double> heightNotifier;
@@ -44,13 +44,13 @@ class FloatingContainer extends StatelessWidget {
       animation: Listenable.merge([widthNotifier, heightNotifier]),
       builder: (context, child) {
         return Material(
-          elevation: kElevation,
-          borderRadius: BorderRadius.circular(kBorderRadius),
+          elevation: _elevation,
+          borderRadius: BorderRadius.circular(_borderRadius),
           child: Container(
             width: widthNotifier.value,
             height: heightNotifier.value,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(kBorderRadius),
+              borderRadius: BorderRadius.circular(_borderRadius),
               color: Colors.white,
             ),
             child: Column(
@@ -84,10 +84,10 @@ class FloatingContainer extends StatelessWidget {
 /// Header bar widget for the floating PDF viewer
 class HeaderBar extends StatelessWidget {
   // UI Constants
-  static const double kBorderRadius = 12.0;
-  static const double kHeaderHeight = 50.0;
-  static const double kHorizontalPadding = 12.0;
-  static const double kSmallHorizontalPadding = 8.0;
+  static const double _borderRadius = 12.0;
+  static const double _headerHeight = 50.0;
+  static const double _horizontalPadding = 12.0;
+  static const double _smallHorizontalPadding = 8.0;
 
   final String? title;
   final Color? headerColor;
@@ -117,22 +117,22 @@ class HeaderBar extends StatelessWidget {
     return GestureDetector(
       onPanUpdate: onPanUpdate,
       child: Container(
-        height: kHeaderHeight,
+        height: _headerHeight,
         decoration: BoxDecoration(
           color: headerColor ?? Colors.blue,
           borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(kBorderRadius),
-            topRight: Radius.circular(kBorderRadius),
+            topLeft: Radius.circular(_borderRadius),
+            topRight: Radius.circular(_borderRadius),
           ),
         ),
         child: Row(
           children: [
-            const SizedBox(width: kHorizontalPadding),
+            const SizedBox(width: _horizontalPadding),
             const Icon(Icons.picture_as_pdf, color: Colors.white),
-            const SizedBox(width: kSmallHorizontalPadding),
+            const SizedBox(width: _smallHorizontalPadding),
             Expanded(
               child: Text(
-                title ?? 'PDF Viewer',
+                title ?? '',
                 style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
@@ -166,9 +166,9 @@ class HeaderBar extends StatelessWidget {
 /// Zoom controls widget for the PDF viewer
 class ZoomControls extends StatelessWidget {
   // UI Constants
-  static const double kIconSize = 20.0;
-  static const double kZoomTextSize = 12.0;
-  static const double kZoomDisplayMultiplier = 100.0;
+  static const double _iconSize = 20.0;
+  static const double _zoomTextSize = 12.0;
+  static const double _zoomDisplayMultiplier = 100.0;
 
   final ValueNotifier<double> zoomLevelNotifier;
   final VoidCallback onZoomIn;
@@ -195,13 +195,13 @@ class ZoomControls extends StatelessWidget {
               onPressed: onZoomOut,
               icon: const Icon(Icons.zoom_out, color: Colors.white),
               tooltip: 'Zoom out',
-              iconSize: kIconSize,
+              iconSize: _iconSize,
             ),
             Text(
-              '${(zoomLevel * kZoomDisplayMultiplier).round()}%',
+              '${(zoomLevel * _zoomDisplayMultiplier).round()}%',
               style: const TextStyle(
                 color: Colors.white,
-                fontSize: kZoomTextSize,
+                fontSize: _zoomTextSize,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -209,13 +209,13 @@ class ZoomControls extends StatelessWidget {
               onPressed: onZoomIn,
               icon: const Icon(Icons.zoom_in, color: Colors.white),
               tooltip: 'Zoom in',
-              iconSize: kIconSize,
+              iconSize: _iconSize,
             ),
             IconButton(
               onPressed: onResetZoom,
               icon: const Icon(Icons.fit_screen, color: Colors.white),
               tooltip: 'Reset zoom',
-              iconSize: kIconSize,
+              iconSize: _iconSize,
             ),
           ],
         );
@@ -227,7 +227,7 @@ class ZoomControls extends StatelessWidget {
 /// WebView content widget for the PDF viewer
 class WebViewContent extends StatelessWidget {
   // UI Constants
-  static const double kBorderRadius = 12.0;
+  static const double _borderRadius = 12.0;
 
   final WebViewController controller;
   final ValueNotifier<bool> isLoadingNotifier;
@@ -243,8 +243,8 @@ class WebViewContent extends StatelessWidget {
     return Expanded(
       child: ClipRRect(
         borderRadius: const BorderRadius.only(
-          bottomLeft: Radius.circular(kBorderRadius),
-          bottomRight: Radius.circular(kBorderRadius),
+          bottomLeft: Radius.circular(_borderRadius),
+          bottomRight: Radius.circular(_borderRadius),
         ),
         child: Stack(
           children: [
@@ -269,9 +269,9 @@ class WebViewContent extends StatelessWidget {
 /// Resize handle widget for the floating PDF viewer
 class ResizeHandle extends StatelessWidget {
   // UI Constants
-  static const double kBorderRadius = 12.0;
-  static const double kResizeHandleSize = 20.0;
-  static const double kResizeHandleIconSize = 16.0;
+  static const double _borderRadius = 12.0;
+  static const double _resizeHandleSize = 20.0;
+  static const double _resizeHandleIconSize = 16.0;
 
   final Color? headerColor;
   final Function(DragUpdateDetails) onPanUpdate;
@@ -290,18 +290,18 @@ class ResizeHandle extends StatelessWidget {
       child: GestureDetector(
         onPanUpdate: onPanUpdate,
         child: Container(
-          width: kResizeHandleSize,
-          height: kResizeHandleSize,
+          width: _resizeHandleSize,
+          height: _resizeHandleSize,
           decoration: BoxDecoration(
             color: headerColor ?? Colors.blue,
             borderRadius: const BorderRadius.only(
-              bottomRight: Radius.circular(kBorderRadius),
+              bottomRight: Radius.circular(_borderRadius),
             ),
           ),
           child: const Icon(
             Icons.drag_handle,
             color: Colors.white,
-            size: kResizeHandleIconSize,
+            size: _resizeHandleIconSize,
           ),
         ),
       ),

@@ -31,7 +31,7 @@ class FloatingPdfViewer extends StatefulWidget {
 
 class _FloatingPdfViewerState extends State<FloatingPdfViewer> {
   // UI Constants
-  static const double _kDefaultZoomLevel = 1.0;
+  static const double _defaultZoomLevel = 1.0;
 
   // Zoom limits
   static const double _minZoom = 0.5;
@@ -60,7 +60,7 @@ class _FloatingPdfViewerState extends State<FloatingPdfViewer> {
     _topNotifier = ValueNotifier(widget.options.initialTop);
     _widthNotifier = ValueNotifier(widget.options.initialWidth);
     _heightNotifier = ValueNotifier(widget.options.initialHeight);
-    _zoomLevelNotifier = ValueNotifier(_kDefaultZoomLevel);
+    _zoomLevelNotifier = ValueNotifier(_defaultZoomLevel);
     _isLoadingNotifier = ValueNotifier(true);
   }
 
@@ -105,7 +105,7 @@ class _FloatingPdfViewerState extends State<FloatingPdfViewer> {
   }
 
   void _resetZoom() async {
-    _zoomLevelNotifier.value = _kDefaultZoomLevel;
+    _zoomLevelNotifier.value = _defaultZoomLevel;
     try {
       await _controller.runJavaScript('''
         document.documentElement.style.transform = "";
