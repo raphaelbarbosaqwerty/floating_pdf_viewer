@@ -80,7 +80,7 @@ class _MyHomePageState extends State<MyHomePage> {
                           _pdfManager.show(
                             context: context,
                             pdfUrl:
-                                '***REMOVED***',
+                                'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
                             options: const FloatingPdfViewerOptions(
                               title: 'Sample Document',
                               headerColor: Colors.blue,
@@ -126,7 +126,7 @@ class _MyHomePageState extends State<MyHomePage> {
                           _pdfManager2.show(
                             context: context,
                             pdfUrl:
-                                '***REMOVED***',
+                                'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
                             options: const FloatingPdfViewerOptions(
                               title: 'Custom PDF',
                               headerColor: Colors.green,
@@ -228,7 +228,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         _pdfManager.show(
                           context: context,
                           pdfUrl:
-                              '***REMOVED***',
+                              'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
                           options: customOptions,
                         );
                       },
@@ -271,7 +271,7 @@ class _MyHomePageState extends State<MyHomePage> {
     _overlayEntry = OverlayEntry(
       builder: (context) => FloatingPdfViewer(
         pdfUrl:
-            '***REMOVED***',
+            'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
         onClose: _hideManualOverlay,
         options: const FloatingPdfViewerOptions(
           title: 'Manual Overlay',
