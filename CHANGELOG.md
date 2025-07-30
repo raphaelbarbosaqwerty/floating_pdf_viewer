@@ -1,3 +1,13 @@
+## 0.1.2
+
+* **Fix**: Resolved header bar overflow in compact layouts
+  * Optimized icon sizes from 20px to 18px for better space utilization
+  * Reduced zoom controls padding and text size for improved layout
+  * Increased minimum width from 300px to 320px to prevent UI clipping
+  * Enhanced overall header bar responsiveness for smaller screen sizes
+* **Enhancement**: Improved UI density and visual balance in header controls
+* **Testing**: Updated tests to reflect new minimum width requirement
+
 ## 0.1.1
 
 * **Fix**: Resolved retry mechanism causing `LateInitializationError` when PDF fails to load

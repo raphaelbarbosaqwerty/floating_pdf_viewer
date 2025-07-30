@@ -251,10 +251,13 @@ class _MyHomePageState extends State<MyHomePage> {
               '• Contracts and forms\n'
               '• Manuals and guides\n'
               '• Reports\n\n'
-              'New features:\n'
+              'Features:\n'
+              '• Draggable and resizable window\n'
+              '• Zoom controls (in, out, reset)\n'
+              '• Minimize to floating button\n'
+              '• Auto-retry on loading errors\n'
               '• Cleaner API with options class\n'
-              '• Easy configuration with copyWith\n'
-              '• Better maintainability',
+              '• Easy configuration with copyWith',
               style: TextStyle(fontSize: 16),
               textAlign: TextAlign.center,
             ),

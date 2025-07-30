@@ -10,11 +10,11 @@ void main() {
 
         expect(options.initialLeft, 50.0);
         expect(options.initialTop, 100.0);
-        expect(options.initialWidth, 350.0);
+        expect(options.initialWidth, 360.0);
         expect(options.initialHeight, 500.0);
         expect(options.title, null);
         expect(options.headerColor, null);
-        expect(options.minWidth, 300.0);
+        expect(options.minWidth, 320.0);
         expect(options.minHeight, 250.0);
         expect(options.maxWidth, 600.0);
         expect(options.maxHeight, 800.0);
@@ -153,10 +153,10 @@ void main() {
       expect(widget.options.title, null);
       expect(widget.options.initialLeft, 50.0); // default value
       expect(widget.options.initialTop, 100.0); // default value
-      expect(widget.options.initialWidth, 350.0); // default value
+      expect(widget.options.initialWidth, 360.0); // default value
       expect(widget.options.initialHeight, 500.0); // default value
       expect(widget.options.headerColor, null);
-      expect(widget.options.minWidth, 300.0); // default value
+      expect(widget.options.minWidth, 320.0); // default value
       expect(widget.options.maxWidth, 600.0); // default value
       expect(widget.options.minHeight, 250.0); // default value
       expect(widget.options.maxHeight, 800.0); // default value

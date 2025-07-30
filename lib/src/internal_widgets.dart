@@ -20,6 +20,7 @@ class FloatingContainer extends StatelessWidget {
   final VoidCallback onZoomOut;
   final VoidCallback onResetZoom;
   final VoidCallback onReload;
+  final VoidCallback onMinimize;
   final VoidCallback onClose;
 
   const FloatingContainer({
@@ -37,6 +38,7 @@ class FloatingContainer extends StatelessWidget {
     required this.onZoomOut,
     required this.onResetZoom,
     required this.onReload,
+    required this.onMinimize,
     required this.onClose,
   });
 
@@ -67,6 +69,7 @@ class FloatingContainer extends StatelessWidget {
                   onZoomOut: onZoomOut,
                   onResetZoom: onResetZoom,
                   onReload: onReload,
+                  onMinimize: onMinimize,
                   onClose: onClose,
                 ),
                 // WebView content
@@ -89,8 +92,7 @@ class HeaderBar extends StatelessWidget {
   // UI Constants
   static const double _borderRadius = 12.0;
   static const double _headerHeight = 50.0;
-  static const double _horizontalPadding = 12.0;
-  static const double _smallHorizontalPadding = 8.0;
+  static const double _iconPadding = 8.0;
 
   final String? title;
   final Color? headerColor;
@@ -100,6 +102,7 @@ class HeaderBar extends StatelessWidget {
   final VoidCallback onZoomOut;
   final VoidCallback onResetZoom;
   final VoidCallback onReload;
+  final VoidCallback onMinimize;
   final VoidCallback onClose;
 
   const HeaderBar({
@@ -112,6 +115,7 @@ class HeaderBar extends StatelessWidget {
     required this.onZoomOut,
     required this.onResetZoom,
     required this.onReload,
+    required this.onMinimize,
     required this.onClose,
   });
 
@@ -130,18 +134,20 @@ class HeaderBar extends StatelessWidget {
         ),
         child: Row(
           children: [
-            const SizedBox(width: _horizontalPadding),
-            const Icon(Icons.picture_as_pdf, color: Colors.white),
-            const SizedBox(width: _smallHorizontalPadding),
-            Expanded(
-              child: Text(
-                title ?? '',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: _iconPadding),
+              child: const Icon(Icons.picture_as_pdf, color: Colors.white),
+            ),
+            if ((title ?? "").isNotEmpty)
+              Expanded(
+                child: Text(
+                  title ?? '',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
-            ),
             // Zoom controls
             ZoomControls(
               zoomLevelNotifier: zoomLevelNotifier,
@@ -153,11 +159,22 @@ class HeaderBar extends StatelessWidget {
               onPressed: onReload,
               icon: const Icon(Icons.refresh, color: Colors.white),
               tooltip: 'Reload',
+              iconSize: 18,
+            ),
+            IconButton(
+              onPressed: onMinimize,
+              icon: const Icon(
+                Icons.remove_circle_outline,
+                color: Colors.white,
+              ),
+              tooltip: 'Minimize',
+              iconSize: 18,
             ),
             IconButton(
               onPressed: onClose,
               icon: const Icon(Icons.close, color: Colors.white),
               tooltip: 'Close',
+              iconSize: 18,
             ),
           ],
         ),
@@ -169,7 +186,7 @@ class HeaderBar extends StatelessWidget {
 /// Zoom controls widget for the PDF viewer
 class ZoomControls extends StatelessWidget {
   // UI Constants
-  static const double _iconSize = 20.0;
+  static const double _iconSize = 18.0;
   static const double _zoomTextSize = 12.0;
   static const double _zoomDisplayMultiplier = 100.0;
 
@@ -311,6 +328,50 @@ class WebViewContent extends StatelessWidget {
               },
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class MinimizedFloatingButton extends StatelessWidget {
+  final Color? headerColor;
+  final VoidCallback onRestore;
+
+  const MinimizedFloatingButton({
+    super.key,
+    required this.headerColor,
+    required this.onRestore,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    const buttonSize = 56.0;
+    const rightMargin = 20.0;
+    const bottomMargin = 100.0;
+
+    return Positioned(
+      right: rightMargin,
+      bottom: bottomMargin,
+      child: Material(
+        elevation: 8.0,
+        borderRadius: BorderRadius.circular(buttonSize / 2),
+        child: Container(
+          width: buttonSize,
+          height: buttonSize,
+          decoration: BoxDecoration(
+            color: headerColor ?? Colors.blue,
+            borderRadius: BorderRadius.circular(buttonSize / 2),
+          ),
+          child: IconButton(
+            onPressed: onRestore,
+            icon: const Icon(
+              Icons.picture_as_pdf,
+              color: Colors.white,
+              size: 24,
+            ),
+            tooltip: 'Restore PDF Viewer',
+          ),
         ),
       ),
     );

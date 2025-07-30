@@ -48,6 +48,7 @@ class _FloatingPdfViewerState extends State<FloatingPdfViewer> {
   late final ValueNotifier<double> _zoomLevelNotifier;
   late final ValueNotifier<bool> _isLoadingNotifier;
   late final ValueNotifier<bool> _hasErrorNotifier;
+  late final ValueNotifier<bool> _isMinimizedNotifier;
 
   // Loading timeout and retry
   static const Duration _loadingTimeout = Duration(seconds: 10);
@@ -70,6 +71,7 @@ class _FloatingPdfViewerState extends State<FloatingPdfViewer> {
     _zoomLevelNotifier = ValueNotifier(_defaultZoomLevel);
     _isLoadingNotifier = ValueNotifier(true);
     _hasErrorNotifier = ValueNotifier(false);
+    _isMinimizedNotifier = ValueNotifier(false);
   }
 
   void _initializeWebView() {
@@ -200,6 +202,11 @@ class _FloatingPdfViewerState extends State<FloatingPdfViewer> {
     await _loadPdfWithRetry();
   }
 
+  /// Toggle minimize/restore state
+  void _toggleMinimize() {
+    _isMinimizedNotifier.value = !_isMinimizedNotifier.value;
+  }
+
   void _zoomIn() {
     if (_zoomLevelNotifier.value < _maxZoom) {
       _zoomLevelNotifier.value = (_zoomLevelNotifier.value + _zoomStep).clamp(
@@ -249,65 +256,89 @@ class _FloatingPdfViewerState extends State<FloatingPdfViewer> {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: Listenable.merge([_leftNotifier, _topNotifier]),
-      builder: (context, child) {
-        return Positioned(
-          left: _leftNotifier.value,
-          top: _topNotifier.value,
-          child: Stack(
-            children: [
-              FloatingContainer(
-                widthNotifier: _widthNotifier,
-                heightNotifier: _heightNotifier,
-                title: widget.options.title,
-                headerColor: widget.options.headerColor,
-                zoomLevelNotifier: _zoomLevelNotifier,
-                controller: _controller,
-                isLoadingNotifier: _isLoadingNotifier,
-                hasErrorNotifier: _hasErrorNotifier,
-                onPanUpdate: (details) {
-                  final screenSize = MediaQuery.of(context).size;
+    return ValueListenableBuilder<bool>(
+      valueListenable: _isMinimizedNotifier,
+      builder: (context, isMinimized, child) {
+        if (isMinimized) {
+          // Show floating button when minimized
+          return MinimizedFloatingButton(
+            headerColor: widget.options.headerColor,
+            onRestore: _toggleMinimize,
+          );
+        }
 
-                  // Allow widget to move outside screen but keep minimum visible area
-                  // This prevents hiding all control buttons while maintaining original behavior
-                  const minVisibleWidth = 100.0; // Enough to show close button
-                  const minVisibleHeight = 50.0; // Height of header bar
+        // Show full PDF viewer when not minimized
+        return AnimatedBuilder(
+          animation: Listenable.merge([_leftNotifier, _topNotifier]),
+          builder: (context, child) {
+            return Positioned(
+              left: _leftNotifier.value,
+              top: _topNotifier.value,
+              child: Stack(
+                children: [
+                  FloatingContainer(
+                    widthNotifier: _widthNotifier,
+                    heightNotifier: _heightNotifier,
+                    title: widget.options.title,
+                    headerColor: widget.options.headerColor,
+                    zoomLevelNotifier: _zoomLevelNotifier,
+                    controller: _controller,
+                    isLoadingNotifier: _isLoadingNotifier,
+                    hasErrorNotifier: _hasErrorNotifier,
+                    onPanUpdate: (details) {
+                      final screenSize = MediaQuery.of(context).size;
 
-                  final minLeft = -((_widthNotifier.value - minVisibleWidth));
-                  final maxLeft = screenSize.width - minVisibleWidth;
-                  final minTop = -((_heightNotifier.value - minVisibleHeight));
-                  final maxTop = screenSize.height - minVisibleHeight;
+                      // Allow widget to move outside screen but keep minimum visible area
+                      // This prevents hiding all control buttons while maintaining original behavior
+                      const minVisibleWidth =
+                          100.0; // Enough to show close button
+                      const minVisibleHeight = 50.0; // Height of header bar
 
-                  _leftNotifier.value = (_leftNotifier.value + details.delta.dx)
-                      .clamp(minLeft, maxLeft);
-                  _topNotifier.value = (_topNotifier.value + details.delta.dy)
-                      .clamp(minTop, maxTop);
-                },
-                onZoomIn: _zoomIn,
-                onZoomOut: _zoomOut,
-                onResetZoom: _resetZoom,
-                onReload: _reloadPdf,
-                onClose: () => widget.onClose?.call(),
+                      final minLeft =
+                          -((_widthNotifier.value - minVisibleWidth));
+                      final maxLeft = screenSize.width - minVisibleWidth;
+                      final minTop =
+                          -((_heightNotifier.value - minVisibleHeight));
+                      final maxTop = screenSize.height - minVisibleHeight;
+
+                      _leftNotifier.value =
+                          (_leftNotifier.value + details.delta.dx).clamp(
+                            minLeft,
+                            maxLeft,
+                          );
+                      _topNotifier.value =
+                          (_topNotifier.value + details.delta.dy).clamp(
+                            minTop,
+                            maxTop,
+                          );
+                    },
+                    onZoomIn: _zoomIn,
+                    onZoomOut: _zoomOut,
+                    onResetZoom: _resetZoom,
+                    onReload: _reloadPdf,
+                    onMinimize: _toggleMinimize,
+                    onClose: () => widget.onClose?.call(),
+                  ),
+                  // Resize handle
+                  ResizeHandle(
+                    headerColor: widget.options.headerColor,
+                    onPanUpdate: (details) {
+                      _widthNotifier.value =
+                          (_widthNotifier.value + details.delta.dx).clamp(
+                            widget.options.minWidth,
+                            widget.options.maxWidth,
+                          );
+                      _heightNotifier.value =
+                          (_heightNotifier.value + details.delta.dy).clamp(
+                            widget.options.minHeight,
+                            widget.options.maxHeight,
+                          );
+                    },
+                  ),
+                ],
               ),
-              // Resize handle
-              ResizeHandle(
-                headerColor: widget.options.headerColor,
-                onPanUpdate: (details) {
-                  _widthNotifier.value =
-                      (_widthNotifier.value + details.delta.dx).clamp(
-                        widget.options.minWidth,
-                        widget.options.maxWidth,
-                      );
-                  _heightNotifier.value =
-                      (_heightNotifier.value + details.delta.dy).clamp(
-                        widget.options.minHeight,
-                        widget.options.maxHeight,
-                      );
-                },
-              ),
-            ],
-          ),
+            );
+          },
         );
       },
     );
@@ -322,6 +353,7 @@ class _FloatingPdfViewerState extends State<FloatingPdfViewer> {
     _zoomLevelNotifier.dispose();
     _isLoadingNotifier.dispose();
     _hasErrorNotifier.dispose();
+    _isMinimizedNotifier.dispose();
     super.dispose();
   }
 }

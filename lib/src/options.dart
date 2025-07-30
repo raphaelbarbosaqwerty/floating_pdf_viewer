@@ -38,11 +38,11 @@ class FloatingPdfViewerOptions {
   const FloatingPdfViewerOptions({
     this.initialLeft = 50.0,
     this.initialTop = 100.0,
-    this.initialWidth = 350.0,
+    this.initialWidth = 360.0,
     this.initialHeight = 500.0,
     this.title,
     this.headerColor,
-    this.minWidth = 300.0,
+    this.minWidth = 320.0,
     this.minHeight = 250.0,
     this.maxWidth = 600.0,
     this.maxHeight = 800.0,
