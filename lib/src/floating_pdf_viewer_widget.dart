@@ -286,7 +286,7 @@ class _FloatingPdfViewerState extends State<FloatingPdfViewer> {
                     isLoadingNotifier: _isLoadingNotifier,
                     hasErrorNotifier: _hasErrorNotifier,
                     onPanUpdate: (details) {
-                      final screenSize = MediaQuery.of(context).size;
+                      final screenSize = MediaQuery.sizeOf(context);
 
                       // Allow widget to move outside screen but keep minimum visible area
                       // This prevents hiding all control buttons while maintaining original behavior
