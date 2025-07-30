@@ -1,3 +1,11 @@
+## 0.1.3
+
+* **Enhancement**: Draggable minimized floating button
+  * Minimized PDF floating button can now be dragged to any position on screen
+  * Added smooth drag interaction with proper screen boundary constraints
+  * Maintains button position during drag gestures with safe area padding
+  * Converted MinimizedFloatingButton from StatelessWidget to StatefulWidget for drag state management
+
 ## 0.1.2
 
 * **New Feature**: Minimize PDF viewer to floating button

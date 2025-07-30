@@ -334,7 +334,7 @@ class WebViewContent extends StatelessWidget {
   }
 }
 
-class MinimizedFloatingButton extends StatelessWidget {
+class MinimizedFloatingButton extends StatefulWidget {
   final Color? headerColor;
   final VoidCallback onRestore;
 
@@ -345,35 +345,85 @@ class MinimizedFloatingButton extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    const buttonSize = 56.0;
-    const rightMargin = 20.0;
-    const bottomMargin = 100.0;
+  State<MinimizedFloatingButton> createState() => _MinimizedFloatingButtonState();
+}
 
-    return Positioned(
-      right: rightMargin,
-      bottom: bottomMargin,
-      child: Material(
-        elevation: 8.0,
-        borderRadius: BorderRadius.circular(buttonSize / 2),
-        child: Container(
-          width: buttonSize,
-          height: buttonSize,
-          decoration: BoxDecoration(
-            color: headerColor ?? Colors.blue,
-            borderRadius: BorderRadius.circular(buttonSize / 2),
-          ),
-          child: IconButton(
-            onPressed: onRestore,
-            icon: const Icon(
-              Icons.picture_as_pdf,
-              color: Colors.white,
-              size: 24,
+class _MinimizedFloatingButtonState extends State<MinimizedFloatingButton> {
+  late ValueNotifier<Offset> _positionNotifier;
+  
+  static const double _buttonSize = 56.0;
+  static const double _defaultRightMargin = 20.0;
+  static const double _defaultBottomMargin = 100.0;
+  static const double _safeAreaPadding = 20.0;
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize with default position (bottom-right)
+    _positionNotifier = ValueNotifier(const Offset(_defaultRightMargin, _defaultBottomMargin));
+  }
+
+  @override
+  void dispose() {
+    _positionNotifier.dispose();
+    super.dispose();
+  }
+
+  void _updatePosition(DragUpdateDetails details) {
+    final screenSize = MediaQuery.of(context).size;
+    final currentPosition = _positionNotifier.value;
+    
+    // Calculate new position
+    final newX = currentPosition.dx + details.delta.dx;
+    final newY = currentPosition.dy + details.delta.dy;
+    
+    // Constrain to screen bounds with safe area padding
+    final constrainedX = newX.clamp(
+      _safeAreaPadding, 
+      screenSize.width - _buttonSize - _safeAreaPadding,
+    );
+    final constrainedY = newY.clamp(
+      _safeAreaPadding, 
+      screenSize.height - _buttonSize - _safeAreaPadding,
+    );
+    
+    _positionNotifier.value = Offset(constrainedX, constrainedY);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<Offset>(
+      valueListenable: _positionNotifier,
+      builder: (context, position, child) {
+        return Positioned(
+          left: position.dx,
+          top: position.dy,
+          child: GestureDetector(
+            onPanUpdate: _updatePosition,
+            child: Material(
+              elevation: 8.0,
+              borderRadius: BorderRadius.circular(_buttonSize / 2),
+              child: Container(
+                width: _buttonSize,
+                height: _buttonSize,
+                decoration: BoxDecoration(
+                  color: widget.headerColor ?? Colors.blue,
+                  borderRadius: BorderRadius.circular(_buttonSize / 2),
+                ),
+                child: IconButton(
+                  onPressed: widget.onRestore,
+                  icon: const Icon(
+                    Icons.picture_as_pdf,
+                    color: Colors.white,
+                    size: 24,
+                  ),
+                  tooltip: 'Restore PDF Viewer',
+                ),
+              ),
             ),
-            tooltip: 'Restore PDF Viewer',
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

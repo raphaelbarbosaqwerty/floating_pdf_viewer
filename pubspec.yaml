@@ -1,6 +1,6 @@
 name: floating_pdf_viewer
 description: "A Flutter package that provides a draggable, resizable floating PDF viewer widget with zoom controls and overlay support."
-version: 0.1.2
+version: 0.1.3
 homepage: https://github.com/raphaelbarbosaqwerty/floating_pdf_viewer
 
 environment:

@@ -28,6 +28,9 @@ A Flutter package that provides a draggable, resizable floating PDF viewer widge
 - ✅ **New in v0.1.0**: `copyWith()` method for easy configuration
 - ✅ **New in v0.1.0**: Organized package structure
 - ✅ **New in v0.1.0**: Better maintainability and type safety
+- ✅ **New in v0.1.2**: Minimize to floating button
+- ✅ **New in v0.1.2**: Draggable minimized button (can be moved anywhere on screen)
+- ✅ **New in v0.1.2**: Improved header bar layout to prevent overflow
 
 ## Installation
 
