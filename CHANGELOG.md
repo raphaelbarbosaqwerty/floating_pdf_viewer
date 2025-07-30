@@ -1,5 +1,11 @@
 ## 0.1.2
 
+* **New Feature**: Minimize PDF viewer to floating button
+  * Added minimize button to header bar with remove circle outline icon
+  * When minimized, PDF viewer transforms into a compact floating button
+  * Floating button positioned on the right side of screen for easy access
+  * Click floating button to restore full PDF viewer instantly
+  * Maintains PDF state and position when minimizing/restoring
 * **Fix**: Resolved header bar overflow in compact layouts
   * Optimized icon sizes from 20px to 18px for better space utilization
   * Reduced zoom controls padding and text size for improved layout
