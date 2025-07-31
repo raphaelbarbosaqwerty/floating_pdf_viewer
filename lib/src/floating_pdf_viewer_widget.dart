@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
@@ -40,6 +42,7 @@ class _FloatingPdfViewerState extends State<FloatingPdfViewer> {
 
   late WebViewController _controller;
   bool _isControllerInitialized = false;
+  bool _isInitializing = false;
 
   late final ValueNotifier<double> _leftNotifier;
   late final ValueNotifier<double> _topNotifier;
@@ -51,10 +54,16 @@ class _FloatingPdfViewerState extends State<FloatingPdfViewer> {
   late final ValueNotifier<bool> _isMinimizedNotifier;
 
   // Loading timeout and retry
-  static const Duration _loadingTimeout = Duration(seconds: 10);
+  static const Duration _loadingTimeout = Duration(seconds: 15);
+  static const Duration _validationDelay = Duration(seconds: 6);
+  static const Duration _validationInterval = Duration(seconds: 8);
   static const int _maxRetries = 3;
+  static const int _maxValidationAttempts = 3;
   int _retryCount = 0;
+  int _validationAttempts = 0;
   bool _hasValidatedSuccessfully = false;
+  Timer? _continuousValidationTimer;
+  Timer? _loadingTimeoutTimer;
 
   @override
   void initState() {
@@ -80,95 +89,253 @@ class _FloatingPdfViewerState extends State<FloatingPdfViewer> {
 
   /// Loads PDF with automatic retry mechanism and error handling
   Future<void> _loadPdfWithRetry() async {
-    final googleViewerUrl =
-        'https://docs.google.com/viewer?url=${Uri.encodeComponent(widget.pdfUrl)}&embedded=true';
+    // Prevent multiple simultaneous initializations
+    if (_isInitializing) return;
+    _isInitializing = true;
 
-    // Only initialize controller once, reuse for retries
-    if (_isControllerInitialized) {
-      // Controller exists, just reload the URL
+    try {
+      final googleViewerUrl =
+          'https://docs.google.com/viewer?url=${Uri.encodeComponent(widget.pdfUrl)}&embedded=true';
 
-      try {
-        await _controller.loadRequest(Uri.parse(googleViewerUrl));
-      } catch (e) {
-        _handleLoadingError();
+      if (_isControllerInitialized) {
+        try {
+          await _controller.loadRequest(Uri.parse(googleViewerUrl));
+        } catch (e) {
+          _handleLoadingError();
+        }
+      } else {
+        _controller = WebViewController()
+          ..setJavaScriptMode(JavaScriptMode.unrestricted)
+          ..enableZoom(true)
+          ..setUserAgent(
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+          )
+          ..setNavigationDelegate(
+            NavigationDelegate(
+              onPageStarted: (String url) {
+                _isLoadingNotifier.value = true;
+                _hasErrorNotifier.value = false;
+                _startLoadingTimeout();
+              },
+              onPageFinished: (String url) {
+                _hasErrorNotifier.value = false;
+
+                if (!_hasValidatedSuccessfully) {
+                  _validatePageContent();
+                } else {
+                  _retryCount = 0;
+                  _validationAttempts = 0;
+                  _consecutiveFailures = 0;
+                  _loadingTimeoutTimer?.cancel();
+                  _isLoadingNotifier.value = false;
+                }
+              },
+              onWebResourceError: (WebResourceError error) {
+                _handleLoadingError();
+              },
+              onNavigationRequest: (NavigationRequest request) {
+                return NavigationDecision.navigate;
+              },
+            ),
+          );
+
+        try {
+          await _controller.loadRequest(Uri.parse(googleViewerUrl));
+          _isControllerInitialized = true;
+        } catch (e) {
+          _handleLoadingError();
+        }
       }
-    } else {
-      // Controller not initialized, create new one
-
-      _controller = WebViewController()
-        ..setJavaScriptMode(JavaScriptMode.unrestricted)
-        ..enableZoom(true)
-        ..setUserAgent(
-          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-        ) // Better compatibility
-        ..setNavigationDelegate(
-          NavigationDelegate(
-            onPageStarted: (String url) {
-              _isLoadingNotifier.value = true;
-              _hasErrorNotifier.value = false;
-              _startLoadingTimeout();
-            },
-            onPageFinished: (String url) {
-              _isLoadingNotifier.value = false;
-              _hasErrorNotifier.value = false;
-
-              // Only validate content if we haven't successfully validated before
-              if (!_hasValidatedSuccessfully) {
-                _validatePageContent(); // Check if content actually loaded
-              } else {
-                // Already validated successfully, just reset retry count
-                _retryCount = 0;
-              }
-            },
-            onWebResourceError: (WebResourceError error) {
-              _handleLoadingError();
-            },
-            onNavigationRequest: (NavigationRequest request) {
-              return NavigationDecision.navigate;
-            },
-          ),
-        );
-
-      try {
-        await _controller.loadRequest(Uri.parse(googleViewerUrl));
-        _isControllerInitialized =
-            true; // Mark as initialized after successful setup
-      } catch (e) {
-        _handleLoadingError();
-      }
+    } finally {
+      _isInitializing = false;
     }
   }
 
   /// Starts a timeout to detect failed loads
   void _startLoadingTimeout() {
-    Future.delayed(_loadingTimeout, () {
-      if (mounted && _isLoadingNotifier.value) {
+    _loadingTimeoutTimer?.cancel();
+    _loadingTimeoutTimer = Timer(_loadingTimeout, () {
+      if (mounted && _isLoadingNotifier.value && !_hasValidatedSuccessfully) {
         _handleLoadingError();
       }
     });
   }
 
+  /// Cancels loading timeout when validation starts
+  void _cancelLoadingTimeout() {
+    _loadingTimeoutTimer?.cancel();
+  }
+
   /// Validates if the page content actually loaded correctly
   Future<void> _validatePageContent() async {
     try {
-      // Wait a bit for content to render
-      await Future.delayed(const Duration(milliseconds: 2000));
+      // Cancel timeout since validation is starting
+      _cancelLoadingTimeout();
+
+      await Future.delayed(_validationDelay);
 
       if (!mounted) return;
 
-      // Simple validation - try to get page title or URL
       final currentUrl = await _controller.currentUrl();
 
-      if (currentUrl != null && currentUrl.contains('docs.google.com')) {
+      if (currentUrl == null || !currentUrl.contains('docs.google.com')) {
+        _handleLoadingError();
+        return;
+      }
+
+      // Try validation multiple times before giving up
+      await _validateWithRetries();
+    } catch (e) {
+      _handleLoadingError();
+    }
+  }
+
+  /// Validates content with multiple attempts for resilience
+  Future<void> _validateWithRetries() async {
+    for (int attempt = 1; attempt <= _maxValidationAttempts; attempt++) {
+      if (!mounted) return;
+
+      bool hasContent = await _checkIfPdfContentIsVisible();
+
+      if (hasContent) {
         _hasValidatedSuccessfully = true;
         _retryCount = 0;
-      } else {
-        _handleLoadingError();
+        _validationAttempts = 0;
+        _consecutiveFailures = 0;
+        _loadingTimeoutTimer?.cancel();
+
+        if (mounted) {
+          _isLoadingNotifier.value = false;
+          _hasErrorNotifier.value = false;
+        }
+
+        _startContinuousValidation();
+        return;
+      }
+
+      // If not the last attempt, wait before retrying
+      if (attempt < _maxValidationAttempts) {
+        await Future.delayed(
+          Duration(seconds: 2 * attempt),
+        ); // Progressive delay
+      }
+    }
+
+    // All validation attempts failed
+    _validationAttempts++;
+    _handleLoadingError();
+  }
+
+  /// Starts continuous validation to detect content that disappears after initial load
+  void _startContinuousValidation() {
+    _continuousValidationTimer?.cancel();
+
+    _continuousValidationTimer = Timer.periodic(_validationInterval, (
+      timer,
+    ) async {
+      if (!mounted ||
+          _isMinimizedNotifier.value ||
+          !_hasValidatedSuccessfully) {
+        timer.cancel();
+        return;
+      }
+
+      await _performContinuousValidation(timer);
+    });
+  }
+
+  int _consecutiveFailures = 0;
+  static const int _maxConsecutiveFailures = 2;
+
+  /// Performs continuous validation with debounce to prevent false positives
+  Future<void> _performContinuousValidation(Timer timer) async {
+    try {
+      bool hasContent = await _checkIfPdfContentIsVisible();
+
+      if (hasContent) {
+        // Reset failure counter on success
+        _consecutiveFailures = 0;
+      } else if (!_isLoadingNotifier.value && !_hasErrorNotifier.value) {
+        _consecutiveFailures++;
+
+        // Only trigger silent failure after multiple consecutive failures
+        if (_consecutiveFailures >= _maxConsecutiveFailures) {
+          timer.cancel();
+          _handleSilentFailure();
+        }
       }
     } catch (e) {
-      // If validation fails, assume success to avoid infinite retries
-      _hasValidatedSuccessfully = true;
-      _retryCount = 0;
+      // Don't count JavaScript errors as failures
+      // PDF might be in transition state
+    }
+  }
+
+  /// Handles silent failures where content appears loaded but is actually blank
+  void _handleSilentFailure() {
+    if (!mounted) return;
+
+    _hasValidatedSuccessfully = false;
+    _consecutiveFailures = 0;
+    _reloadPdf();
+  }
+
+  /// Checks if PDF content is actually visible in the WebView
+  Future<bool> _checkIfPdfContentIsVisible() async {
+    try {
+      final result = await _controller.runJavaScriptReturningResult('''
+        (function() {
+          function isElementVisible(element) {
+            if (!element) return false;
+            const rect = element.getBoundingClientRect();
+            const style = window.getComputedStyle(element);
+            return rect.width > 0 &&
+                   rect.height > 0 &&
+                   style.visibility !== 'hidden' &&
+                   style.opacity !== '0' &&
+                   style.display !== 'none' &&
+                   rect.top < window.innerHeight &&
+                   rect.bottom > 0;
+          }
+
+          // Check for Google Docs viewer elements
+          const viewerSelectors = [
+            '[data-viewer-container]',
+            '.ndfHFb-c4YZDc',
+            '#viewer-container',
+            '.ndfHFb-c4YZDc-to915-LgbsSe',
+            '.kix-canvas-tile-content'
+          ];
+
+          for (let selector of viewerSelectors) {
+            const element = document.querySelector(selector);
+            if (element && element.offsetHeight > 50 && isElementVisible(element)) {
+              return true;
+            }
+          }
+
+          // Check for embedded PDF elements
+          const embeds = document.querySelectorAll('embed[type="application/pdf"], object[type="application/pdf"]');
+          for (let embed of embeds) {
+            if (isElementVisible(embed)) {
+              return true;
+            }
+          }
+
+          // Check for canvas elements
+          const canvases = document.querySelectorAll('canvas');
+          for (let canvas of canvases) {
+            if (canvas.offsetHeight > 100 && canvas.offsetWidth > 100 && isElementVisible(canvas)) {
+              return true;
+            }
+          }
+
+          return false;
+        })();
+      ''');
+
+      return result.toString() == 'true';
+    } catch (e) {
+      return false;
     }
   }
 
@@ -176,26 +343,37 @@ class _FloatingPdfViewerState extends State<FloatingPdfViewer> {
   void _handleLoadingError() {
     if (!mounted) return;
 
+    _loadingTimeoutTimer?.cancel();
     _isLoadingNotifier.value = false;
     _hasErrorNotifier.value = true;
 
-    if (_retryCount < _maxRetries) {
+    // Only retry if we haven't exceeded both retry and validation limits
+    if (_retryCount < _maxRetries &&
+        _validationAttempts < _maxValidationAttempts) {
       _retryCount++;
 
-      Future.delayed(const Duration(seconds: 2), () {
+      // Progressive delay: longer waits for subsequent retries
+      final delaySeconds = 2 + (_retryCount * 2);
+
+      Future.delayed(Duration(seconds: delaySeconds), () {
         if (mounted) {
           _loadPdfWithRetry();
         }
       });
-    } else {
-      // Keep error state - user can manually retry via reload button
     }
   }
 
   /// Manual reload method (improved)
   Future<void> _reloadPdf() async {
-    _retryCount = 0; // Reset retry count for manual reload
-    _hasValidatedSuccessfully = false; // Reset validation flag
+    if (_isInitializing) return;
+
+    _continuousValidationTimer?.cancel();
+    _loadingTimeoutTimer?.cancel();
+
+    _retryCount = 0;
+    _validationAttempts = 0;
+    _consecutiveFailures = 0;
+    _hasValidatedSuccessfully = false;
     _isLoadingNotifier.value = true;
     _hasErrorNotifier.value = false;
 
@@ -208,23 +386,19 @@ class _FloatingPdfViewerState extends State<FloatingPdfViewer> {
   }
 
   void _zoomIn() {
-    if (_zoomLevelNotifier.value < _maxZoom) {
-      _zoomLevelNotifier.value = (_zoomLevelNotifier.value + _zoomStep).clamp(
-        _minZoom,
-        _maxZoom,
-      );
-      _applyZoom();
-    }
+    _zoomLevelNotifier.value = (_zoomLevelNotifier.value + _zoomStep).clamp(
+      _minZoom,
+      _maxZoom,
+    );
+    _applyZoom();
   }
 
   void _zoomOut() {
-    if (_zoomLevelNotifier.value > _minZoom) {
-      _zoomLevelNotifier.value = (_zoomLevelNotifier.value - _zoomStep).clamp(
-        _minZoom,
-        _maxZoom,
-      );
-      _applyZoom();
-    }
+    _zoomLevelNotifier.value = (_zoomLevelNotifier.value - _zoomStep).clamp(
+      _minZoom,
+      _maxZoom,
+    );
+    _applyZoom();
   }
 
   void _resetZoom() async {
@@ -237,7 +411,7 @@ class _FloatingPdfViewerState extends State<FloatingPdfViewer> {
         document.documentElement.style.height = "";
       ''');
     } catch (_) {
-      // Ignore zoom reset errors
+      // Ignore errors
     }
   }
 
@@ -250,7 +424,7 @@ class _FloatingPdfViewerState extends State<FloatingPdfViewer> {
         document.documentElement.style.height = "${100 / _zoomLevelNotifier.value}%";
       ''');
     } catch (_) {
-      // Ignore zoom application errors
+      // Ignore errors
     }
   }
 
@@ -260,14 +434,11 @@ class _FloatingPdfViewerState extends State<FloatingPdfViewer> {
       valueListenable: _isMinimizedNotifier,
       builder: (context, isMinimized, child) {
         if (isMinimized) {
-          // Show floating button when minimized
           return MinimizedFloatingButton(
             headerColor: widget.options.headerColor,
             onRestore: _toggleMinimize,
           );
         }
-
-        // Show full PDF viewer when not minimized
         return AnimatedBuilder(
           animation: Listenable.merge([_leftNotifier, _topNotifier]),
           builder: (context, child) {
@@ -286,13 +457,10 @@ class _FloatingPdfViewerState extends State<FloatingPdfViewer> {
                     isLoadingNotifier: _isLoadingNotifier,
                     hasErrorNotifier: _hasErrorNotifier,
                     onPanUpdate: (details) {
-                      final screenSize = MediaQuery.of(context).size;
+                      final screenSize = MediaQuery.sizeOf(context);
 
-                      // Allow widget to move outside screen but keep minimum visible area
-                      // This prevents hiding all control buttons while maintaining original behavior
-                      const minVisibleWidth =
-                          100.0; // Enough to show close button
-                      const minVisibleHeight = 50.0; // Height of header bar
+                      const minVisibleWidth = 100.0;
+                      const minVisibleHeight = 50.0;
 
                       final minLeft =
                           -((_widthNotifier.value - minVisibleWidth));
@@ -319,7 +487,6 @@ class _FloatingPdfViewerState extends State<FloatingPdfViewer> {
                     onMinimize: _toggleMinimize,
                     onClose: () => widget.onClose?.call(),
                   ),
-                  // Resize handle
                   ResizeHandle(
                     headerColor: widget.options.headerColor,
                     onPanUpdate: (details) {
@@ -346,6 +513,8 @@ class _FloatingPdfViewerState extends State<FloatingPdfViewer> {
 
   @override
   void dispose() {
+    _continuousValidationTimer?.cancel();
+    _loadingTimeoutTimer?.cancel();
     _leftNotifier.dispose();
     _topNotifier.dispose();
     _widthNotifier.dispose();

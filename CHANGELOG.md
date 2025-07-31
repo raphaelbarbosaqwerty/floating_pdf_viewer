@@ -1,3 +1,12 @@
+## 0.1.4
+
+* **Critical Fix**: Resolved blank screen issue when returning from background
+  * Added WidgetsBindingObserver to detect app lifecycle changes
+  * WebViewController is now properly reinitialized when app returns from background
+  * Fixed race conditions that caused blank screens when clicking PDF buttons too quickly
+  * Added protection against multiple simultaneous WebView initializations
+  * Improved state management for better reliability across app lifecycle
+
 ## 0.1.3
 
 * **Enhancement**: Draggable minimized floating button

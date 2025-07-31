@@ -345,22 +345,45 @@ class MinimizedFloatingButton extends StatefulWidget {
   });
 
   @override
-  State<MinimizedFloatingButton> createState() => _MinimizedFloatingButtonState();
+  State<MinimizedFloatingButton> createState() =>
+      _MinimizedFloatingButtonState();
 }
 
 class _MinimizedFloatingButtonState extends State<MinimizedFloatingButton> {
   late ValueNotifier<Offset> _positionNotifier;
-  
+  bool _isPositionInitialized = false;
+
   static const double _buttonSize = 56.0;
   static const double _defaultRightMargin = 20.0;
-  static const double _defaultBottomMargin = 100.0;
   static const double _safeAreaPadding = 20.0;
 
   @override
   void initState() {
     super.initState();
-    // Initialize with default position (bottom-right)
-    _positionNotifier = ValueNotifier(const Offset(_defaultRightMargin, _defaultBottomMargin));
+    // Initialize with temporary position, will be updated in didChangeDependencies
+    _positionNotifier = ValueNotifier(Offset.zero);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _initializePosition();
+  }
+
+  void _initializePosition() {
+    if (_isPositionInitialized) return;
+
+    final screenSize = MediaQuery.sizeOf(context);
+    final screenCenter = screenSize.height / 2;
+
+    // Position on the right side of screen, vertically centered
+    final initialPosition = Offset(
+      screenSize.width - _buttonSize - _defaultRightMargin,
+      screenCenter - (_buttonSize / 2),
+    );
+
+    _positionNotifier.value = initialPosition;
+    _isPositionInitialized = true;
   }
 
   @override
@@ -370,23 +393,23 @@ class _MinimizedFloatingButtonState extends State<MinimizedFloatingButton> {
   }
 
   void _updatePosition(DragUpdateDetails details) {
-    final screenSize = MediaQuery.of(context).size;
+    final screenSize = MediaQuery.sizeOf(context);
     final currentPosition = _positionNotifier.value;
-    
+
     // Calculate new position
     final newX = currentPosition.dx + details.delta.dx;
     final newY = currentPosition.dy + details.delta.dy;
-    
+
     // Constrain to screen bounds with safe area padding
     final constrainedX = newX.clamp(
-      _safeAreaPadding, 
+      _safeAreaPadding,
       screenSize.width - _buttonSize - _safeAreaPadding,
     );
     final constrainedY = newY.clamp(
-      _safeAreaPadding, 
+      _safeAreaPadding,
       screenSize.height - _buttonSize - _safeAreaPadding,
     );
-    
+
     _positionNotifier.value = Offset(constrainedX, constrainedY);
   }
 
