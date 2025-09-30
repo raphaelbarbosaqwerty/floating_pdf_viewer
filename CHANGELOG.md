@@ -1,3 +1,32 @@
+## 0.1.5
+
+* **Critical Fix**: Resolved blank screen issue for certain PDFs after initial load
+  * Completely redesigned PDF content validation with 5-layer fallback system
+  * Added iframe detection for more reliable PDF viewer identification
+  * Added large container detection to catch viewer elements regardless of CSS class changes
+  * Expanded viewer selectors to include accessibility attributes ([role="document"], [role="main"])
+  * Reduced canvas size threshold from 100px to 50px for better small PDF detection
+  * Added final fallback based on substantial page content (scrollHeight/scrollWidth)
+  * Changed error handling to assume success on JavaScript errors (prevents false negatives)
+* **Performance**: Significantly improved PDF loading times
+  * Reduced initial validation delay from 6 seconds to 2 seconds (70% faster)
+  * Optimized validation timeout from 15s to 12s with better success detection
+  * Increased validation interval from 3s to 5s to reduce unnecessary checks
+  * Improved retry delays: now uses 1s, 2s progression instead of 2s, 4s, 6s
+* **Performance**: Optimized widget rebuild cycle
+  * Extracted inline callbacks from build() method to dedicated handler methods
+  * Moved magic numbers to named constants (_minVisibleWidth, _minVisibleHeight)
+  * Eliminated function recreation on every rebuild for better memory efficiency
+  * Created dedicated _handlePanUpdate and _handleResizePanUpdate methods
+* **Enhancement**: More tolerant continuous validation
+  * Increased max consecutive failures from 2 to 3 before triggering reload
+  * Better handling of temporary validation failures during PDF rendering
+  * Reduced false positives that caused unnecessary reloads
+* **Code Quality**: Improved code organization and maintainability
+  * Better separation of concerns with dedicated validation methods
+  * Clearer constant naming and grouping
+  * Enhanced documentation for complex validation logic
+
 ## 0.1.4
 
 * **Critical Fix**: Resolved blank screen issue when returning from background

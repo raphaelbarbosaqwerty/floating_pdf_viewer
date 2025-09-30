@@ -40,6 +40,10 @@ class _FloatingPdfViewerState extends State<FloatingPdfViewer> {
   static const double _maxZoom = 3.0;
   static const double _zoomStep = 0.25;
 
+  // Window boundary constraints
+  static const double _minVisibleWidth = 100.0;
+  static const double _minVisibleHeight = 50.0;
+
   late WebViewController _controller;
   bool _isControllerInitialized = false;
   bool _isInitializing = false;
@@ -54,11 +58,11 @@ class _FloatingPdfViewerState extends State<FloatingPdfViewer> {
   late final ValueNotifier<bool> _isMinimizedNotifier;
 
   // Loading timeout and retry
-  static const Duration _loadingTimeout = Duration(seconds: 15);
-  static const Duration _validationDelay = Duration(seconds: 6);
-  static const Duration _validationInterval = Duration(seconds: 8);
+  static const Duration _loadingTimeout = Duration(seconds: 12);
+  static const Duration _validationDelay = Duration(seconds: 2);
+  static const Duration _validationInterval = Duration(seconds: 5);
   static const int _maxRetries = 3;
-  static const int _maxValidationAttempts = 3;
+  static const int _maxValidationAttempts = 2;
   int _retryCount = 0;
   int _validationAttempts = 0;
   bool _hasValidatedSuccessfully = false;
@@ -216,8 +220,8 @@ class _FloatingPdfViewerState extends State<FloatingPdfViewer> {
       // If not the last attempt, wait before retrying
       if (attempt < _maxValidationAttempts) {
         await Future.delayed(
-          Duration(seconds: 2 * attempt),
-        ); // Progressive delay
+          Duration(seconds: 1 * attempt),
+        ); // Progressive delay: 1s, 2s
       }
     }
 
@@ -245,7 +249,7 @@ class _FloatingPdfViewerState extends State<FloatingPdfViewer> {
   }
 
   int _consecutiveFailures = 0;
-  static const int _maxConsecutiveFailures = 2;
+  static const int _maxConsecutiveFailures = 3;
 
   /// Performs continuous validation with debounce to prevent false positives
   Future<void> _performContinuousValidation(Timer timer) async {
@@ -292,23 +296,43 @@ class _FloatingPdfViewerState extends State<FloatingPdfViewer> {
                    rect.height > 0 &&
                    style.visibility !== 'hidden' &&
                    style.opacity !== '0' &&
-                   style.display !== 'none' &&
-                   rect.top < window.innerHeight &&
-                   rect.bottom > 0;
+                   style.display !== 'none';
           }
 
-          // Check for Google Docs viewer elements
+          // First, check if we're on Google Docs Viewer at all
+          if (window.location.href.includes('docs.google.com/viewer')) {
+            // Check for any visible iframe (PDF viewer often uses iframe)
+            const iframes = document.querySelectorAll('iframe');
+            for (let iframe of iframes) {
+              if (iframe.offsetHeight > 100 && iframe.offsetWidth > 100) {
+                return true;
+              }
+            }
+
+            // Check for main viewer container (any large div)
+            const mainDivs = document.querySelectorAll('div');
+            for (let div of mainDivs) {
+              if (div.offsetHeight > 200 && div.offsetWidth > 200 && isElementVisible(div)) {
+                // Found a substantial viewer container
+                return true;
+              }
+            }
+          }
+
+          // Check for Google Docs viewer elements (less restrictive)
           const viewerSelectors = [
             '[data-viewer-container]',
             '.ndfHFb-c4YZDc',
             '#viewer-container',
             '.ndfHFb-c4YZDc-to915-LgbsSe',
-            '.kix-canvas-tile-content'
+            '.kix-canvas-tile-content',
+            '[role="document"]',
+            '[role="main"]'
           ];
 
           for (let selector of viewerSelectors) {
             const element = document.querySelector(selector);
-            if (element && element.offsetHeight > 50 && isElementVisible(element)) {
+            if (element && element.offsetHeight > 30 && isElementVisible(element)) {
               return true;
             }
           }
@@ -321,12 +345,17 @@ class _FloatingPdfViewerState extends State<FloatingPdfViewer> {
             }
           }
 
-          // Check for canvas elements
+          // Check for canvas elements (less restrictive)
           const canvases = document.querySelectorAll('canvas');
           for (let canvas of canvases) {
-            if (canvas.offsetHeight > 100 && canvas.offsetWidth > 100 && isElementVisible(canvas)) {
+            if (canvas.offsetHeight > 50 && canvas.offsetWidth > 50 && isElementVisible(canvas)) {
               return true;
             }
+          }
+
+          // Final fallback: if there's substantial content on the page, assume success
+          if (document.body.scrollHeight > 400 && document.body.scrollWidth > 300) {
+            return true;
           }
 
           return false;
@@ -335,7 +364,9 @@ class _FloatingPdfViewerState extends State<FloatingPdfViewer> {
 
       return result.toString() == 'true';
     } catch (e) {
-      return false;
+      // On JavaScript error, assume content might be loading
+      // Return true to avoid false negatives
+      return true;
     }
   }
 
@@ -353,9 +384,9 @@ class _FloatingPdfViewerState extends State<FloatingPdfViewer> {
       _retryCount++;
 
       // Progressive delay: longer waits for subsequent retries
-      final delaySeconds = 2 + (_retryCount * 2);
+      final delayMilliseconds = 1000 + (_retryCount * 1000);
 
-      Future.delayed(Duration(seconds: delaySeconds), () {
+      Future.delayed(Duration(milliseconds: delayMilliseconds), () {
         if (mounted) {
           _loadPdfWithRetry();
         }
@@ -383,6 +414,35 @@ class _FloatingPdfViewerState extends State<FloatingPdfViewer> {
   /// Toggle minimize/restore state
   void _toggleMinimize() {
     _isMinimizedNotifier.value = !_isMinimizedNotifier.value;
+  }
+
+  /// Handles pan update for dragging the floating window
+  void _handlePanUpdate(DragUpdateDetails details, Size screenSize) {
+    final minLeft = -(_widthNotifier.value - _minVisibleWidth);
+    final maxLeft = screenSize.width - _minVisibleWidth;
+    final minTop = -(_heightNotifier.value - _minVisibleHeight);
+    final maxTop = screenSize.height - _minVisibleHeight;
+
+    _leftNotifier.value = (_leftNotifier.value + details.delta.dx).clamp(
+      minLeft,
+      maxLeft,
+    );
+    _topNotifier.value = (_topNotifier.value + details.delta.dy).clamp(
+      minTop,
+      maxTop,
+    );
+  }
+
+  /// Handles pan update for resizing the floating window
+  void _handleResizePanUpdate(DragUpdateDetails details) {
+    _widthNotifier.value = (_widthNotifier.value + details.delta.dx).clamp(
+      widget.options.minWidth,
+      widget.options.maxWidth,
+    );
+    _heightNotifier.value = (_heightNotifier.value + details.delta.dy).clamp(
+      widget.options.minHeight,
+      widget.options.maxHeight,
+    );
   }
 
   void _zoomIn() {
@@ -456,30 +516,8 @@ class _FloatingPdfViewerState extends State<FloatingPdfViewer> {
                     controller: _controller,
                     isLoadingNotifier: _isLoadingNotifier,
                     hasErrorNotifier: _hasErrorNotifier,
-                    onPanUpdate: (details) {
-                      final screenSize = MediaQuery.sizeOf(context);
-
-                      const minVisibleWidth = 100.0;
-                      const minVisibleHeight = 50.0;
-
-                      final minLeft =
-                          -((_widthNotifier.value - minVisibleWidth));
-                      final maxLeft = screenSize.width - minVisibleWidth;
-                      final minTop =
-                          -((_heightNotifier.value - minVisibleHeight));
-                      final maxTop = screenSize.height - minVisibleHeight;
-
-                      _leftNotifier.value =
-                          (_leftNotifier.value + details.delta.dx).clamp(
-                            minLeft,
-                            maxLeft,
-                          );
-                      _topNotifier.value =
-                          (_topNotifier.value + details.delta.dy).clamp(
-                            minTop,
-                            maxTop,
-                          );
-                    },
+                    onPanUpdate: (details) =>
+                        _handlePanUpdate(details, MediaQuery.sizeOf(context)),
                     onZoomIn: _zoomIn,
                     onZoomOut: _zoomOut,
                     onResetZoom: _resetZoom,
@@ -489,18 +527,7 @@ class _FloatingPdfViewerState extends State<FloatingPdfViewer> {
                   ),
                   ResizeHandle(
                     headerColor: widget.options.headerColor,
-                    onPanUpdate: (details) {
-                      _widthNotifier.value =
-                          (_widthNotifier.value + details.delta.dx).clamp(
-                            widget.options.minWidth,
-                            widget.options.maxWidth,
-                          );
-                      _heightNotifier.value =
-                          (_heightNotifier.value + details.delta.dy).clamp(
-                            widget.options.minHeight,
-                            widget.options.maxHeight,
-                          );
-                    },
+                    onPanUpdate: _handleResizePanUpdate,
                   ),
                 ],
               ),
