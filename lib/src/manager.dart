@@ -28,11 +28,32 @@ class FloatingPdfViewerManager {
       hide();
     }
 
+    // Calculate centered position if not provided
+    final screenSize = MediaQuery.sizeOf(context);
+    final viewerOptions = options ?? const FloatingPdfViewerOptions();
+
+    final centeredOptions = FloatingPdfViewerOptions(
+      initialLeft:
+          viewerOptions.initialLeft ??
+          (screenSize.width - viewerOptions.initialWidth) / 2,
+      initialTop:
+          viewerOptions.initialTop ??
+          (screenSize.height - viewerOptions.initialHeight) / 2,
+      initialWidth: viewerOptions.initialWidth,
+      initialHeight: viewerOptions.initialHeight,
+      title: viewerOptions.title,
+      headerColor: viewerOptions.headerColor,
+      minWidth: viewerOptions.minWidth,
+      minHeight: viewerOptions.minHeight,
+      maxWidth: viewerOptions.maxWidth,
+      maxHeight: viewerOptions.maxHeight,
+    );
+
     _overlayEntry = OverlayEntry(
       builder: (context) => FloatingPdfViewer(
         onClose: combinedOnClose,
         pdfUrl: pdfUrl,
-        options: options ?? const FloatingPdfViewerOptions(),
+        options: centeredOptions,
       ),
     );
 

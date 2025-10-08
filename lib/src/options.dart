@@ -6,10 +6,12 @@ import 'package:flutter/material.dart';
 /// in an immutable data class, following Flutter best practices.
 class FloatingPdfViewerOptions {
   /// Initial position of the floating viewer (left offset)
-  final double initialLeft;
+  /// If null, will be centered horizontally
+  final double? initialLeft;
 
   /// Initial position of the floating viewer (top offset)
-  final double initialTop;
+  /// If null, will be centered vertically
+  final double? initialTop;
 
   /// Initial width of the floating viewer
   final double initialWidth;
@@ -36,8 +38,8 @@ class FloatingPdfViewerOptions {
   final double maxHeight;
 
   const FloatingPdfViewerOptions({
-    this.initialLeft = 50.0,
-    this.initialTop = 100.0,
+    this.initialLeft,
+    this.initialTop,
     this.initialWidth = 360.0,
     this.initialHeight = 500.0,
     this.title,
