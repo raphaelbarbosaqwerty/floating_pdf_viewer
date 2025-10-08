@@ -1,91 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:webview_flutter/webview_flutter.dart';
-
-/// Floating container widget for the PDF viewer
-class FloatingContainer extends StatelessWidget {
-  // UI Constants
-  static const double _borderRadius = 12.0;
-  static const double _elevation = 8.0;
-
-  final ValueNotifier<double> widthNotifier;
-  final ValueNotifier<double> heightNotifier;
-  final String? title;
-  final Color? headerColor;
-  final ValueNotifier<double> zoomLevelNotifier;
-  final WebViewController controller;
-  final ValueNotifier<bool> isLoadingNotifier;
-  final ValueNotifier<bool> hasErrorNotifier;
-  final Function(DragUpdateDetails) onPanUpdate;
-  final VoidCallback onZoomIn;
-  final VoidCallback onZoomOut;
-  final VoidCallback onResetZoom;
-  final VoidCallback onReload;
-  final VoidCallback onMinimize;
-  final VoidCallback onClose;
-
-  const FloatingContainer({
-    super.key,
-    required this.widthNotifier,
-    required this.heightNotifier,
-    required this.title,
-    required this.headerColor,
-    required this.zoomLevelNotifier,
-    required this.controller,
-    required this.isLoadingNotifier,
-    required this.hasErrorNotifier,
-    required this.onPanUpdate,
-    required this.onZoomIn,
-    required this.onZoomOut,
-    required this.onResetZoom,
-    required this.onReload,
-    required this.onMinimize,
-    required this.onClose,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: Listenable.merge([widthNotifier, heightNotifier]),
-      builder: (context, child) {
-        return Material(
-          elevation: _elevation,
-          borderRadius: BorderRadius.circular(_borderRadius),
-          child: Container(
-            width: widthNotifier.value,
-            height: heightNotifier.value,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(_borderRadius),
-              color: Colors.white,
-            ),
-            child: Column(
-              children: [
-                // Header bar (draggable)
-                HeaderBar(
-                  title: title,
-                  headerColor: headerColor,
-                  zoomLevelNotifier: zoomLevelNotifier,
-                  onPanUpdate: onPanUpdate,
-                  onZoomIn: onZoomIn,
-                  onZoomOut: onZoomOut,
-                  onResetZoom: onResetZoom,
-                  onReload: onReload,
-                  onMinimize: onMinimize,
-                  onClose: onClose,
-                ),
-                // WebView content
-                WebViewContent(
-                  controller: controller,
-                  isLoadingNotifier: isLoadingNotifier,
-                  hasErrorNotifier: hasErrorNotifier,
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
+import 'package:pdfx/pdfx.dart';
 
 /// Header bar widget for the floating PDF viewer
 class HeaderBar extends StatelessWidget {
@@ -96,11 +10,7 @@ class HeaderBar extends StatelessWidget {
 
   final String? title;
   final Color? headerColor;
-  final ValueNotifier<double> zoomLevelNotifier;
   final Function(DragUpdateDetails) onPanUpdate;
-  final VoidCallback onZoomIn;
-  final VoidCallback onZoomOut;
-  final VoidCallback onResetZoom;
   final VoidCallback onReload;
   final VoidCallback onMinimize;
   final VoidCallback onClose;
@@ -109,11 +19,7 @@ class HeaderBar extends StatelessWidget {
     super.key,
     required this.title,
     required this.headerColor,
-    required this.zoomLevelNotifier,
     required this.onPanUpdate,
-    required this.onZoomIn,
-    required this.onZoomOut,
-    required this.onResetZoom,
     required this.onReload,
     required this.onMinimize,
     required this.onClose,
@@ -147,14 +53,9 @@ class HeaderBar extends StatelessWidget {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-              ),
-            // Zoom controls
-            ZoomControls(
-              zoomLevelNotifier: zoomLevelNotifier,
-              onZoomIn: onZoomIn,
-              onZoomOut: onZoomOut,
-              onResetZoom: onResetZoom,
-            ),
+              )
+            else
+              const Spacer(),
             IconButton(
               onPressed: onReload,
               icon: const Icon(Icons.refresh, color: Colors.white),
@@ -183,157 +84,7 @@ class HeaderBar extends StatelessWidget {
   }
 }
 
-/// Zoom controls widget for the PDF viewer
-class ZoomControls extends StatelessWidget {
-  // UI Constants
-  static const double _iconSize = 18.0;
-  static const double _zoomTextSize = 12.0;
-  static const double _zoomDisplayMultiplier = 100.0;
-
-  final ValueNotifier<double> zoomLevelNotifier;
-  final VoidCallback onZoomIn;
-  final VoidCallback onZoomOut;
-  final VoidCallback onResetZoom;
-
-  const ZoomControls({
-    super.key,
-    required this.zoomLevelNotifier,
-    required this.onZoomIn,
-    required this.onZoomOut,
-    required this.onResetZoom,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return ValueListenableBuilder<double>(
-      valueListenable: zoomLevelNotifier,
-      builder: (context, zoomLevel, child) {
-        return Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            IconButton(
-              onPressed: onZoomOut,
-              icon: const Icon(Icons.zoom_out, color: Colors.white),
-              tooltip: 'Zoom out',
-              iconSize: _iconSize,
-            ),
-            Text(
-              '${(zoomLevel * _zoomDisplayMultiplier).round()}%',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: _zoomTextSize,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            IconButton(
-              onPressed: onZoomIn,
-              icon: const Icon(Icons.zoom_in, color: Colors.white),
-              tooltip: 'Zoom in',
-              iconSize: _iconSize,
-            ),
-            IconButton(
-              onPressed: onResetZoom,
-              icon: const Icon(Icons.fit_screen, color: Colors.white),
-              tooltip: 'Reset zoom',
-              iconSize: _iconSize,
-            ),
-          ],
-        );
-      },
-    );
-  }
-}
-
-/// WebView content widget for the PDF viewer
-class WebViewContent extends StatelessWidget {
-  // UI Constants
-  static const double _borderRadius = 12.0;
-
-  final WebViewController controller;
-  final ValueNotifier<bool> isLoadingNotifier;
-  final ValueNotifier<bool> hasErrorNotifier;
-
-  const WebViewContent({
-    super.key,
-    required this.controller,
-    required this.isLoadingNotifier,
-    required this.hasErrorNotifier,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: ClipRRect(
-        borderRadius: const BorderRadius.only(
-          bottomLeft: Radius.circular(_borderRadius),
-          bottomRight: Radius.circular(_borderRadius),
-        ),
-        child: Stack(
-          children: [
-            WebViewWidget(controller: controller),
-            // Loading indicator
-            ValueListenableBuilder<bool>(
-              valueListenable: isLoadingNotifier,
-              builder: (context, isLoading, child) {
-                if (!isLoading) return const SizedBox.shrink();
-                return Container(
-                  color: Colors.white,
-                  child: const Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        CircularProgressIndicator(),
-                        SizedBox(height: 16),
-                        Text(
-                          'Loading PDF...',
-                          style: TextStyle(fontSize: 14, color: Colors.grey),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-            // Error indicator
-            ValueListenableBuilder<bool>(
-              valueListenable: hasErrorNotifier,
-              builder: (context, hasError, child) {
-                if (!hasError) return const SizedBox.shrink();
-                return Container(
-                  color: Colors.white,
-                  child: const Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.error_outline, size: 48, color: Colors.red),
-                        SizedBox(height: 16),
-                        Text(
-                          'Failed to load PDF',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.red,
-                          ),
-                        ),
-                        SizedBox(height: 8),
-                        Text(
-                          'Click the refresh button to try again',
-                          style: TextStyle(fontSize: 14, color: Colors.grey),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
+/// Minimized floating button widget
 class MinimizedFloatingButton extends StatefulWidget {
   final Color? headerColor;
   final VoidCallback onRestore;
@@ -488,6 +239,217 @@ class ResizeHandle extends StatelessWidget {
             color: Colors.white,
             size: _resizeHandleIconSize,
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Floating PDF container widget using pdfx
+class FloatingPdfContainer extends StatelessWidget {
+  // UI Constants
+  static const double _borderRadius = 12.0;
+  static const double _elevation = 8.0;
+
+  final ValueNotifier<double> widthNotifier;
+  final ValueNotifier<double> heightNotifier;
+  final String? title;
+  final Color? headerColor;
+  final PdfControllerPinch? pdfController;
+  final ValueNotifier<bool> isLoadingNotifier;
+  final ValueNotifier<bool> hasErrorNotifier;
+  final double downloadProgress;
+  final String? errorMessage;
+  final Function(DragUpdateDetails) onPanUpdate;
+  final VoidCallback onReload;
+  final VoidCallback onMinimize;
+  final VoidCallback onClose;
+
+  const FloatingPdfContainer({
+    super.key,
+    required this.widthNotifier,
+    required this.heightNotifier,
+    required this.title,
+    required this.headerColor,
+    required this.pdfController,
+    required this.isLoadingNotifier,
+    required this.hasErrorNotifier,
+    required this.downloadProgress,
+    required this.errorMessage,
+    required this.onPanUpdate,
+    required this.onReload,
+    required this.onMinimize,
+    required this.onClose,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: Listenable.merge([widthNotifier, heightNotifier]),
+      builder: (context, child) {
+        return Material(
+          elevation: _elevation,
+          borderRadius: BorderRadius.circular(_borderRadius),
+          child: Container(
+            width: widthNotifier.value,
+            height: heightNotifier.value,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(_borderRadius),
+              color: Colors.white,
+            ),
+            child: Column(
+              children: [
+                // Header bar (draggable)
+                HeaderBar(
+                  title: title,
+                  headerColor: headerColor,
+                  onPanUpdate: onPanUpdate,
+                  onReload: onReload,
+                  onMinimize: onMinimize,
+                  onClose: onClose,
+                ),
+                // PDF content
+                PdfContent(
+                  pdfController: pdfController,
+                  isLoadingNotifier: isLoadingNotifier,
+                  hasErrorNotifier: hasErrorNotifier,
+                  downloadProgress: downloadProgress,
+                  errorMessage: errorMessage,
+                  onReload: onReload,
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// PDF content widget using pdfx
+class PdfContent extends StatelessWidget {
+  // UI Constants
+  static const double _borderRadius = 12.0;
+
+  final PdfControllerPinch? pdfController;
+  final ValueNotifier<bool> isLoadingNotifier;
+  final ValueNotifier<bool> hasErrorNotifier;
+  final double downloadProgress;
+  final String? errorMessage;
+  final VoidCallback onReload;
+
+  const PdfContent({
+    super.key,
+    required this.pdfController,
+    required this.isLoadingNotifier,
+    required this.hasErrorNotifier,
+    required this.downloadProgress,
+    required this.errorMessage,
+    required this.onReload,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: ClipRRect(
+        borderRadius: const BorderRadius.only(
+          bottomLeft: Radius.circular(_borderRadius),
+          bottomRight: Radius.circular(_borderRadius),
+        ),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            if (pdfController != null)
+              RepaintBoundary(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(color: Color(0xff2f343e)),
+                  child: PdfViewPinch(
+                    controller: pdfController!,
+                    padding: 0,
+                    backgroundDecoration: BoxDecoration(color: Colors.red),
+                  ),
+                ),
+              ),
+            ValueListenableBuilder<bool>(
+              valueListenable: isLoadingNotifier,
+              builder: (context, isLoading, child) {
+                if (!isLoading) return const SizedBox.shrink();
+                return Container(
+                  color: Colors.white,
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        CircularProgressIndicator(
+                          value: downloadProgress > 0 ? downloadProgress : null,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          downloadProgress > 0
+                              ? 'Downloading ${(downloadProgress * 100).toStringAsFixed(0)}%'
+                              : 'Loading PDF...',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+            // Error indicator
+            ValueListenableBuilder<bool>(
+              valueListenable: hasErrorNotifier,
+              builder: (context, hasError, child) {
+                if (!hasError) return const SizedBox.shrink();
+                return Container(
+                  color: Colors.white,
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.error_outline,
+                          color: Colors.red,
+                          size: 48,
+                        ),
+                        const SizedBox(height: 16),
+                        const Text(
+                          'Failed to load PDF',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 24),
+                          child: Text(
+                            errorMessage ?? 'Unknown error',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey,
+                            ),
+                            textAlign: TextAlign.center,
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton.icon(
+                          onPressed: onReload,
+                          icon: const Icon(Icons.refresh),
+                          label: const Text('Try Again'),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
         ),
       ),
     );
