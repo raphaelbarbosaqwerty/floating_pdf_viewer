@@ -1,3 +1,53 @@
+## 0.1.6
+
+* **BREAKING CHANGE**: Migrated from WebView to native PDF rendering
+  * Replaced `webview_flutter` with `pdfx` for direct PDF rendering
+  * Eliminates Content Security Policy (CSP) errors from Google Docs Viewer
+  * Provides better performance and more reliable PDF loading
+  * Native PDF rendering works consistently across all platforms
+* **BREAKING CHANGE**: Removed manual zoom controls
+  * Removed zoom in, zoom out, and reset zoom buttons from header bar
+  * Users now rely exclusively on native pinch-to-zoom gestures
+  * Provides more intuitive and natural zoom interaction
+  * Reduces UI clutter in header bar
+* **Critical Fix**: Resolved PDF disappearing after minimization
+  * Replaced conditional rendering with `Visibility` widget
+  * Added `maintainState: true` to preserve PDF state when minimized
+  * PDF viewer now correctly restores with full content after un-minimizing
+  * Fixed "Incorrect use of ParentDataWidget" error during minimization
+* **New Feature**: Direct PDF download with progress tracking
+  * Created dedicated `PdfDownloader` class for PDF handling
+  * Added `downloadPdfBytesWithProgress` method with real-time progress callbacks
+  * Downloads PDF directly to memory (Uint8List) for better performance
+  * Displays download progress percentage in loading indicator
+  * Eliminated dependency on external PDF viewer services
+* **Testing**: Added comprehensive test coverage
+  * Added `mocktail ^1.0.0` as dev dependency for mocking
+  * Created `pdf_downloader_test.dart` with 6 test cases:
+    - Success and error scenarios for direct downloads
+    - Progress tracking validation
+    - Network error handling
+  * Created `manager_test.dart` with 9 test cases:
+    - Show/hide overlay functionality
+    - Custom options handling
+    - Auto-centering behavior
+    - Multiple show/hide cycles
+    - Dispose and cleanup validation
+* **Enhancement**: Improved PDF viewer UI
+  * Added custom background decoration to PDF viewer
+  * Improved loading indicator appearance with circular progress
+  * Removed unnecessary spacing in PDF content area
+  * Added `RepaintBoundary` for better rendering performance
+* **Code Quality**: Refactored PDF loading architecture
+  * Removed `pdf_document_helper.dart` (no longer needed with pdfx)
+  * Simplified controller initialization and state management
+  * Better separation of concerns with dedicated downloader class
+  * Cleaner error handling and retry logic
+* **Performance**: Faster PDF loading and rendering
+  * Direct PDF byte loading eliminates external service latency
+  * Native rendering removes WebView overhead
+  * Reduced memory footprint with optimized state management
+
 ## 0.1.5
 
 * **Critical Fix**: Resolved blank screen issue for certain PDFs after initial load
