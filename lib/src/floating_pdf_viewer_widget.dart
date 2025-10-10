@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:typed_data';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:pdfx/pdfx.dart';
@@ -40,7 +40,7 @@ class _FloatingPdfViewerState extends State<FloatingPdfViewer> {
 
   // PDF controller
   PdfControllerPinch? _pdfController;
-  Uint8List? _pdfBytes;
+  File? _pdfFile;
 
   late final ValueNotifier<double> _leftNotifier;
   late final ValueNotifier<double> _topNotifier;
@@ -49,8 +49,8 @@ class _FloatingPdfViewerState extends State<FloatingPdfViewer> {
   late final ValueNotifier<bool> _isLoadingNotifier;
   late final ValueNotifier<bool> _hasErrorNotifier;
   late final ValueNotifier<bool> _isMinimizedNotifier;
+  late final ValueNotifier<double> _downloadProgressNotifier;
 
-  double _downloadProgress = 0.0;
   String? _errorMessage;
   int _retryCount = 0;
 
@@ -69,6 +69,7 @@ class _FloatingPdfViewerState extends State<FloatingPdfViewer> {
     _isLoadingNotifier = ValueNotifier(true);
     _hasErrorNotifier = ValueNotifier(false);
     _isMinimizedNotifier = ValueNotifier(false);
+    _downloadProgressNotifier = ValueNotifier(0.0);
   }
 
   Future<void> _loadPdf() async {
@@ -76,23 +77,23 @@ class _FloatingPdfViewerState extends State<FloatingPdfViewer> {
 
     _isLoadingNotifier.value = true;
     _hasErrorNotifier.value = false;
-    _downloadProgress = 0.0;
+    _downloadProgressNotifier.value = 0.0;
     _errorMessage = null;
 
     try {
-      // Download PDF with progress
-      _pdfBytes = await PdfDownloader.downloadPdfBytesWithProgress(
+      // Get PDF file (from cache or download)
+      _pdfFile = await PdfDownloader.getPdfFileWithCache(
         widget.pdfUrl,
         (progress) {
           if (mounted) {
-            setState(() => _downloadProgress = progress);
+            _downloadProgressNotifier.value = progress;
           }
         },
       );
 
-      // Create PDF controller
+      // Create PDF controller from file
       _pdfController = PdfControllerPinch(
-        document: PdfDocument.openData(_pdfBytes!),
+        document: PdfDocument.openFile(_pdfFile!.path),
       );
 
       if (mounted) {
@@ -125,7 +126,7 @@ class _FloatingPdfViewerState extends State<FloatingPdfViewer> {
   Future<void> _reloadPdf() async {
     _pdfController?.dispose();
     _pdfController = null;
-    _pdfBytes = null;
+    _pdfFile = null;
     _retryCount = 0; // Reset retry count on manual reload
     await _loadPdf();
   }
@@ -165,6 +166,21 @@ class _FloatingPdfViewerState extends State<FloatingPdfViewer> {
   }
 
   @override
+  void dispose() {
+    _pdfController?.dispose();
+    _pdfFile = null;
+    _leftNotifier.dispose();
+    _topNotifier.dispose();
+    _widthNotifier.dispose();
+    _heightNotifier.dispose();
+    _isLoadingNotifier.dispose();
+    _hasErrorNotifier.dispose();
+    _isMinimizedNotifier.dispose();
+    _downloadProgressNotifier.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<bool>(
       valueListenable: _isMinimizedNotifier,
@@ -185,23 +201,28 @@ class _FloatingPdfViewerState extends State<FloatingPdfViewer> {
                     maintainSize: false,
                     child: Stack(
                       children: [
-                        FloatingPdfContainer(
-                          widthNotifier: _widthNotifier,
-                          heightNotifier: _heightNotifier,
-                          title: widget.options.title,
-                          headerColor: widget.options.headerColor,
-                          pdfController: _pdfController,
-                          isLoadingNotifier: _isLoadingNotifier,
-                          hasErrorNotifier: _hasErrorNotifier,
-                          downloadProgress: _downloadProgress,
-                          errorMessage: _errorMessage,
-                          onPanUpdate: (details) => _handlePanUpdate(
-                            details,
-                            MediaQuery.sizeOf(context),
-                          ),
-                          onReload: _reloadPdf,
-                          onMinimize: _toggleMinimize,
-                          onClose: () => widget.onClose?.call(),
+                        ValueListenableBuilder<double>(
+                          valueListenable: _downloadProgressNotifier,
+                          builder: (context, downloadProgress, child) {
+                            return FloatingPdfContainer(
+                              widthNotifier: _widthNotifier,
+                              heightNotifier: _heightNotifier,
+                              title: widget.options.title,
+                              headerColor: widget.options.headerColor,
+                              pdfController: _pdfController,
+                              isLoadingNotifier: _isLoadingNotifier,
+                              hasErrorNotifier: _hasErrorNotifier,
+                              downloadProgress: downloadProgress,
+                              errorMessage: _errorMessage,
+                              onPanUpdate: (details) => _handlePanUpdate(
+                                details,
+                                MediaQuery.sizeOf(context),
+                              ),
+                              onReload: _reloadPdf,
+                              onMinimize: _toggleMinimize,
+                              onClose: () => widget.onClose?.call(),
+                            );
+                          },
                         ),
                         ResizeHandle(
                           headerColor: widget.options.headerColor,
@@ -223,19 +244,5 @@ class _FloatingPdfViewerState extends State<FloatingPdfViewer> {
         );
       },
     );
-  }
-
-  @override
-  void dispose() {
-    _pdfController?.dispose();
-    _pdfBytes = null;
-    _leftNotifier.dispose();
-    _topNotifier.dispose();
-    _widthNotifier.dispose();
-    _heightNotifier.dispose();
-    _isLoadingNotifier.dispose();
-    _hasErrorNotifier.dispose();
-    _isMinimizedNotifier.dispose();
-    super.dispose();
   }
 }
