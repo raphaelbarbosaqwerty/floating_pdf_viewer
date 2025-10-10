@@ -50,6 +50,7 @@ class _FloatingPdfViewerState extends State<FloatingPdfViewer> {
   late final ValueNotifier<bool> _hasErrorNotifier;
   late final ValueNotifier<bool> _isMinimizedNotifier;
   late final ValueNotifier<double> _downloadProgressNotifier;
+  late final ValueNotifier<bool> _isCachedNotifier;
 
   String? _errorMessage;
   int _retryCount = 0;
@@ -70,6 +71,7 @@ class _FloatingPdfViewerState extends State<FloatingPdfViewer> {
     _hasErrorNotifier = ValueNotifier(false);
     _isMinimizedNotifier = ValueNotifier(false);
     _downloadProgressNotifier = ValueNotifier(0.0);
+    _isCachedNotifier = ValueNotifier(false);
   }
 
   Future<void> _loadPdf() async {
@@ -81,6 +83,10 @@ class _FloatingPdfViewerState extends State<FloatingPdfViewer> {
     _errorMessage = null;
 
     try {
+      // Check if PDF is already cached
+      final isCached = await PdfDownloader.isCached(widget.pdfUrl);
+      _isCachedNotifier.value = isCached;
+
       // Get PDF file (from cache or download)
       _pdfFile = await PdfDownloader.getPdfFileWithCache(
         widget.pdfUrl,
@@ -90,6 +96,11 @@ class _FloatingPdfViewerState extends State<FloatingPdfViewer> {
           }
         },
       );
+
+      // Update cache status after download
+      if (!isCached && mounted) {
+        _isCachedNotifier.value = true;
+      }
 
       // Create PDF controller from file
       _pdfController = PdfControllerPinch(
@@ -177,6 +188,7 @@ class _FloatingPdfViewerState extends State<FloatingPdfViewer> {
     _hasErrorNotifier.dispose();
     _isMinimizedNotifier.dispose();
     _downloadProgressNotifier.dispose();
+    _isCachedNotifier.dispose();
     super.dispose();
   }
 
@@ -204,23 +216,29 @@ class _FloatingPdfViewerState extends State<FloatingPdfViewer> {
                         ValueListenableBuilder<double>(
                           valueListenable: _downloadProgressNotifier,
                           builder: (context, downloadProgress, child) {
-                            return FloatingPdfContainer(
-                              widthNotifier: _widthNotifier,
-                              heightNotifier: _heightNotifier,
-                              title: widget.options.title,
-                              headerColor: widget.options.headerColor,
-                              pdfController: _pdfController,
-                              isLoadingNotifier: _isLoadingNotifier,
-                              hasErrorNotifier: _hasErrorNotifier,
-                              downloadProgress: downloadProgress,
-                              errorMessage: _errorMessage,
-                              onPanUpdate: (details) => _handlePanUpdate(
-                                details,
-                                MediaQuery.sizeOf(context),
-                              ),
-                              onReload: _reloadPdf,
-                              onMinimize: _toggleMinimize,
-                              onClose: () => widget.onClose?.call(),
+                            return ValueListenableBuilder<bool>(
+                              valueListenable: _isCachedNotifier,
+                              builder: (context, isCached, child) {
+                                return FloatingPdfContainer(
+                                  widthNotifier: _widthNotifier,
+                                  heightNotifier: _heightNotifier,
+                                  title: widget.options.title,
+                                  headerColor: widget.options.headerColor,
+                                  pdfController: _pdfController,
+                                  isLoadingNotifier: _isLoadingNotifier,
+                                  hasErrorNotifier: _hasErrorNotifier,
+                                  downloadProgress: downloadProgress,
+                                  isCached: isCached,
+                                  errorMessage: _errorMessage,
+                                  onPanUpdate: (details) => _handlePanUpdate(
+                                    details,
+                                    MediaQuery.sizeOf(context),
+                                  ),
+                                  onReload: _reloadPdf,
+                                  onMinimize: _toggleMinimize,
+                                  onClose: () => widget.onClose?.call(),
+                                );
+                              },
                             );
                           },
                         ),

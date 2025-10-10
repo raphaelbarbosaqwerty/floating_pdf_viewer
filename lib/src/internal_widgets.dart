@@ -14,6 +14,7 @@ class HeaderBar extends StatelessWidget {
   final VoidCallback onReload;
   final VoidCallback onMinimize;
   final VoidCallback onClose;
+  final bool isCached;
 
   const HeaderBar({
     super.key,
@@ -23,6 +24,7 @@ class HeaderBar extends StatelessWidget {
     required this.onReload,
     required this.onMinimize,
     required this.onClose,
+    required this.isCached,
   });
 
   @override
@@ -56,12 +58,14 @@ class HeaderBar extends StatelessWidget {
               )
             else
               const Spacer(),
-            IconButton(
-              onPressed: onReload,
-              icon: const Icon(Icons.refresh, color: Colors.white),
-              tooltip: 'Reload',
-              iconSize: 18,
-            ),
+            // Only show reload button if PDF is not cached
+            if (!isCached)
+              IconButton(
+                onPressed: onReload,
+                icon: const Icon(Icons.refresh, color: Colors.white),
+                tooltip: 'Reload',
+                iconSize: 18,
+              ),
             IconButton(
               onPressed: onMinimize,
               icon: const Icon(
@@ -259,6 +263,7 @@ class FloatingPdfContainer extends StatelessWidget {
   final ValueNotifier<bool> isLoadingNotifier;
   final ValueNotifier<bool> hasErrorNotifier;
   final double downloadProgress;
+  final bool isCached;
   final String? errorMessage;
   final Function(DragUpdateDetails) onPanUpdate;
   final VoidCallback onReload;
@@ -275,6 +280,7 @@ class FloatingPdfContainer extends StatelessWidget {
     required this.isLoadingNotifier,
     required this.hasErrorNotifier,
     required this.downloadProgress,
+    required this.isCached,
     required this.errorMessage,
     required this.onPanUpdate,
     required this.onReload,
@@ -307,6 +313,7 @@ class FloatingPdfContainer extends StatelessWidget {
                   onReload: onReload,
                   onMinimize: onMinimize,
                   onClose: onClose,
+                  isCached: isCached,
                 ),
                 // PDF content
                 PdfContent(
