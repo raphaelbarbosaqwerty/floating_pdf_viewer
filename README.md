@@ -31,6 +31,10 @@ A Flutter package that provides a draggable, resizable floating PDF viewer widge
 - ✅ **New in v0.1.2**: Minimize to floating button
 - ✅ **New in v0.1.2**: Draggable minimized button (can be moved anywhere on screen)
 - ✅ **New in v0.1.2**: Improved header bar layout to prevent overflow
+- ✅ **New in v0.1.7**: Disk-based PDF caching system
+- ✅ **New in v0.1.7**: Automatic retry mechanism with configurable attempts
+- ✅ **New in v0.1.7**: Reduced memory usage by storing PDFs on disk instead of RAM
+- ✅ **New in v0.1.7**: Instant loading for previously viewed PDFs
 
 ## Installation
 
@@ -205,14 +209,16 @@ class _MyHomePageState extends State<MyHomePage> {
 |-----------|------|---------|-------------|
 | `title` | `String?` | `null` | Title displayed in the header bar |
 | `headerColor` | `Color?` | `null` | Color of the header bar |
-| `initialLeft` | `double` | `50.0` | Initial horizontal position |
-| `initialTop` | `double` | `100.0` | Initial vertical position |
-| `initialWidth` | `double` | `350.0` | Initial width |
+| `initialLeft` | `double?` | `null` | Initial horizontal position (centered if null) |
+| `initialTop` | `double?` | `null` | Initial vertical position (centered if null) |
+| `initialWidth` | `double` | `360.0` | Initial width |
 | `initialHeight` | `double` | `500.0` | Initial height |
-| `minWidth` | `double` | `300.0` | Minimum width for resizing |
+| `minWidth` | `double` | `320.0` | Minimum width for resizing |
 | `minHeight` | `double` | `250.0` | Minimum height for resizing |
 | `maxWidth` | `double` | `600.0` | Maximum width for resizing |
 | `maxHeight` | `double` | `800.0` | Maximum height for resizing |
+| `maxRetries` | `int` | `3` | Maximum number of automatic retry attempts on failure |
+| `retryDelay` | `Duration` | `2 seconds` | Delay between retry attempts |
 
 ### FloatingPdfViewerManager.show()
 
@@ -222,6 +228,168 @@ class _MyHomePageState extends State<MyHomePage> {
 | `pdfUrl` | `String` | ✅ | URL of the PDF to display |
 | `options` | `FloatingPdfViewerOptions?` | ❌ | Configuration options (uses defaults if not provided) |
 | `onClose` | `VoidCallback?` | ❌ | Optional callback called when the floating viewer is closed |
+
+## PDF Caching System
+
+### Overview
+
+The package includes a powerful disk-based caching system that:
+- **Reduces Memory Usage**: PDFs are stored on disk instead of RAM (important for large PDFs > 16MB)
+- **Improves Performance**: Previously downloaded PDFs load instantly from cache
+- **Works Offline**: Cached PDFs are available even without internet connection
+- **Automatic Management**: Cache is handled automatically, no manual intervention needed
+
+### How It Works
+
+1. **First Load**: PDF is downloaded from URL and saved to cache
+2. **Subsequent Loads**: PDF loads instantly from disk cache
+3. **Cache Location**: `getTemporaryDirectory()/pdf_cache/`
+4. **File Naming**: Uses SHA-256 hash of URL for unique identification
+
+### Automatic Caching (Default Behavior)
+
+By default, all PDFs are automatically cached. You don't need to do anything:
+
+```dart
+// PDF will be automatically cached on first load
+_pdfManager.show(
+  context: context,
+  pdfUrl: 'https://example.com/large-document.pdf',
+  options: const FloatingPdfViewerOptions(
+    title: 'Cached PDF',
+  ),
+);
+```
+
+### Manual Cache Management
+
+You can manually manage the cache if needed:
+
+```dart
+import 'package:floating_pdf_viewer/floating_pdf_viewer.dart';
+
+// Check if a PDF is cached
+bool isCached = await PdfDownloader.isCached('https://example.com/doc.pdf');
+
+// Clear cache for specific URL
+await PdfDownloader.clearCacheForUrl('https://example.com/doc.pdf');
+
+// Clear all cached PDFs
+await PdfDownloader.clearAllCache();
+
+// Get cache statistics
+final stats = await PdfCacheManager.getCacheStats();
+print('Cached files: ${stats.fileCount}');
+print('Total cache size: ${stats.totalSizeMB} MB');
+
+// Get specific cache info
+int cacheSize = await PdfCacheManager.getCacheSize(); // in bytes
+int fileCount = await PdfCacheManager.getCacheFileCount();
+```
+
+### Cache Management UI Example
+
+You can create a settings screen to let users manage the cache:
+
+```dart
+class CacheSettingsScreen extends StatefulWidget {
+  @override
+  _CacheSettingsScreenState createState() => _CacheSettingsScreenState();
+}
+
+class _CacheSettingsScreenState extends State<CacheSettingsScreen> {
+  CacheStats? _cacheStats;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCacheStats();
+  }
+
+  Future<void> _loadCacheStats() async {
+    final stats = await PdfCacheManager.getCacheStats();
+    setState(() => _cacheStats = stats);
+  }
+
+  Future<void> _clearCache() async {
+    await PdfDownloader.clearAllCache();
+    await _loadCacheStats();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Cache cleared successfully')),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text('Cache Settings')),
+      body: ListView(
+        children: [
+          ListTile(
+            title: Text('Cached PDFs'),
+            subtitle: Text('${_cacheStats?.fileCount ?? 0} files'),
+          ),
+          ListTile(
+            title: Text('Cache Size'),
+            subtitle: Text('${_cacheStats?.totalSizeMB.toStringAsFixed(2) ?? 0} MB'),
+          ),
+          ListTile(
+            title: Text('Clear Cache'),
+            trailing: ElevatedButton(
+              onPressed: _clearCache,
+              child: Text('Clear'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+```
+
+## Automatic Retry Mechanism
+
+The package includes an automatic retry system that handles network failures gracefully:
+
+```dart
+_pdfManager.show(
+  context: context,
+  pdfUrl: 'https://example.com/document.pdf',
+  options: const FloatingPdfViewerOptions(
+    title: 'PDF with Retry',
+    maxRetries: 5, // Will retry up to 5 times
+    retryDelay: Duration(seconds: 3), // Wait 3 seconds between retries
+  ),
+);
+```
+
+### How Retry Works
+
+1. **Automatic**: If download fails, automatically retries
+2. **Configurable**: Set `maxRetries` and `retryDelay` in options
+3. **Silent**: Retries happen in background without user intervention
+4. **Progressive**: Shows error only after all retries are exhausted
+
+### Retry Best Practices
+
+```dart
+// Fast retry for good connections
+const FloatingPdfViewerOptions(
+  maxRetries: 3,
+  retryDelay: Duration(milliseconds: 500),
+)
+
+// Patient retry for slow/unstable connections
+const FloatingPdfViewerOptions(
+  maxRetries: 5,
+  retryDelay: Duration(seconds: 3),
+)
+
+// No retry (immediate failure)
+const FloatingPdfViewerOptions(
+  maxRetries: 0,
+)
+```
 
 ## Advanced Examples
 
@@ -407,18 +575,21 @@ The package is now organized following Flutter best practices:
 
 ```
 lib/
-├── floating_pdf_viewer.dart         # 📦 Main export file
+├── floating_pdf_viewer.dart            # 📦 Main export file
 └── src/
-    ├── options.dart                 # ⚙️  FloatingPdfViewerOptions
-    ├── manager.dart                 # 🎛️  FloatingPdfViewerManager
+    ├── options.dart                    # ⚙️  FloatingPdfViewerOptions
+    ├── manager.dart                    # 🎛️  FloatingPdfViewerManager
     ├── floating_pdf_viewer_widget.dart # 🪟 Main FloatingPdfViewer widget
-    └── internal_widgets.dart        # 🔧 Internal widgets (not exported)
+    ├── pdf_downloader.dart             # 📥 PDF download with cache support
+    ├── pdf_cache_manager.dart          # 💾 Cache management system
+    └── internal_widgets.dart           # 🔧 Internal widgets (not exported)
 ```
 
 - **Clean API**: Only public classes are exported from the main file
 - **Organized code**: Each class has its own focused file
 - **Maintainable**: Internal widgets are separated and not exposed
 - **Best practices**: Follows Flutter package structure conventions
+- **Modular**: Cache and download logic separated for easy testing
 
 ## Requirements
 
@@ -428,7 +599,10 @@ lib/
 ## Dependencies
 
 - `flutter`: Flutter SDK
-- `webview_flutter`: `^4.4.2` for web content display
+- `pdfx`: `^2.9.2` for PDF rendering
+- `http`: `^1.2.0` for downloading PDFs
+- `path_provider`: `^2.1.5` for cache directory access
+- `crypto`: `^3.0.6` for cache key generation
 
 ## Compatibility
 
@@ -441,9 +615,9 @@ lib/
 
 ## Limitations
 
-- Depends on Google Docs Viewer for PDF rendering
-- Requires internet connection
+- Requires internet connection for initial PDF download (cached PDFs work offline)
 - PDFs must be publicly accessible via URL
+- Native PDF rendering using pdfx (platform-specific limitations may apply)
 
 ## Contributing
 
