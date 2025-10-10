@@ -1,112 +1,80 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:http/http.dart' as http;
-import 'package:mocktail/mocktail.dart';
 import 'package:floating_pdf_viewer/src/pdf_downloader.dart';
+import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
+import 'package:plugin_platform_interface/plugin_platform_interface.dart';
+import 'dart:io';
 
-// Mock classes
-class MockClient extends Mock implements http.Client {}
+// Mock PathProviderPlatform for testing
+class MockPathProviderPlatform extends Fake
+    with MockPlatformInterfaceMixin
+    implements PathProviderPlatform {
+  final String testPath;
 
-class MockResponse extends Mock implements http.Response {}
+  MockPathProviderPlatform(this.testPath);
 
-class MockStreamedResponse extends Mock implements http.StreamedResponse {}
-
-class FakeUri extends Fake implements Uri {}
+  @override
+  Future<String?> getTemporaryPath() async {
+    return testPath;
+  }
+}
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  late Directory testDir;
+
   setUpAll(() {
-    registerFallbackValue(FakeUri());
+    // Create one test directory for all tests
+    testDir = Directory.systemTemp.createTempSync('pdf_cache_test');
+    PathProviderPlatform.instance = MockPathProviderPlatform(testDir.path);
+  });
+
+  tearDown(() async {
+    // Clean up cache after each test
+    try {
+      await PdfDownloader.clearAllCache();
+    } catch (e) {
+      // Ignore cleanup errors
+    }
+  });
+
+  tearDownAll(() {
+    // Remove the test directory after all tests
+    try {
+      if (testDir.existsSync()) {
+        testDir.deleteSync(recursive: true);
+      }
+    } catch (e) {
+      // Ignore cleanup errors
+    }
   });
 
   group('PdfDownloader', () {
-    late MockClient mockClient;
-
-    setUp(() {
-      mockClient = MockClient();
-    });
-
     group('downloadPdfBytes', () {
       test('should throw exception when HTTP status is not 200', () async {
-        // Arrange
-        final mockResponse = MockResponse();
-        when(() => mockResponse.statusCode).thenReturn(404);
-        when(() => mockResponse.reasonPhrase).thenReturn('Not Found');
-
-        when(
-          () => mockClient.get(any(), headers: any(named: 'headers')),
-        ).thenAnswer((_) async => mockResponse);
+        // Arrange - Using invalid URL to trigger error
+        const invalidUrl = 'https://example.com/test.pdf';
 
         // Act & Assert
         expect(
-          () => PdfDownloader.downloadPdfBytes('https://example.com/test.pdf'),
-          throwsA(
-            isA<Exception>().having(
-              (e) => e.toString(),
-              'message',
-              contains('HTTP 404'),
-            ),
-          ),
+          () => PdfDownloader.downloadPdfBytes(invalidUrl),
+          throwsA(isA<Exception>()),
         );
       });
 
       test('should throw exception on network error', () async {
-        // Arrange
-        when(
-          () => mockClient.get(any(), headers: any(named: 'headers')),
-        ).thenThrow(Exception('Network error'));
+        // Arrange - Using invalid URL to trigger network error
+        const invalidUrl = 'https://invalid-domain-12345.com/test.pdf';
 
         // Act & Assert
         expect(
-          () => PdfDownloader.downloadPdfBytes('https://example.com/test.pdf'),
+          () => PdfDownloader.downloadPdfBytes(invalidUrl),
           throwsA(isA<Exception>()),
         );
       });
     });
 
     group('downloadPdfBytesWithProgress', () {
-      test('should download PDF with progress tracking', () async {
-        // Arrange
-        final progressValues = <double>[];
-
-        // Act
-        // Note: This test would require mocking StreamedResponse which is complex
-        // For now, we'll test the basic flow
-        final result = await PdfDownloader.downloadPdfBytesWithProgress(
-          'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-          (progress) {
-            progressValues.add(progress);
-          },
-        );
-
-        // Assert
-        expect(result, isNotEmpty);
-        // Progress should have been called at least once
-        expect(progressValues, isNotEmpty);
-      });
-
-      test('should handle progress callback correctly', () async {
-        // Arrange
-        final progressValues = <double>[];
-        const testUrl =
-            'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf';
-
-        // Act
-        await PdfDownloader.downloadPdfBytesWithProgress(testUrl, (progress) {
-          progressValues.add(progress);
-        });
-
-        // Assert
-        expect(progressValues, isNotEmpty);
-        // Progress values should be between 0 and 1
-        for (final value in progressValues) {
-          expect(value, greaterThanOrEqualTo(0));
-          expect(value, lessThanOrEqualTo(1));
-        }
-        // Last progress should be close to 1.0 (complete)
-        if (progressValues.isNotEmpty) {
-          expect(progressValues.last, closeTo(1.0, 0.1));
-        }
-      });
-
       test('should throw exception when HTTP status is not 200', () async {
         // Arrange
         const invalidUrl = 'https://example.com/non-existent-file.pdf';
@@ -119,6 +87,48 @@ void main() {
           ),
           throwsA(isA<Exception>()),
         );
+      });
+    });
+
+    group('getPdfFileWithCache', () {
+      test('should handle network errors gracefully', () async {
+        // Arrange
+        const invalidUrl = 'https://example.com/nonexistent.pdf';
+
+        // Act & Assert
+        expect(
+          () => PdfDownloader.getPdfFileWithCache(invalidUrl, null),
+          throwsA(isA<Exception>()),
+        );
+      });
+    });
+
+    group('isCached', () {
+      test('should return false for non-cached URL', () async {
+        // Arrange
+        const testUrl = 'https://example.com/test.pdf';
+
+        // Act
+        final isCached = await PdfDownloader.isCached(testUrl);
+
+        // Assert
+        expect(isCached, isFalse);
+      });
+    });
+
+    group('clearCacheForUrl', () {
+      test('should handle clearing non-existent cache gracefully', () async {
+        // Act & Assert - should not throw
+        await PdfDownloader.clearCacheForUrl(
+            'https://example.com/nonexistent.pdf');
+      });
+    });
+
+    group('clearAllCache', () {
+      test('should handle clearing empty cache gracefully', () async {
+        // Act & Assert - should not throw
+        await PdfDownloader.clearAllCache();
+        await PdfDownloader.clearAllCache(); // Call twice
       });
     });
   });

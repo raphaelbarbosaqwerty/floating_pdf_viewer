@@ -1,3 +1,39 @@
+## 0.1.7
+
+* **New Feature**: Disk-based PDF caching system
+  * Created `PdfCacheManager` class for intelligent cache management
+  * PDFs are now stored on disk (in temporary directory) instead of RAM
+  * Dramatically reduces memory usage (critical for PDFs > 16MB)
+  * Previously downloaded PDFs load instantly from cache
+  * Cached PDFs work offline without internet connection
+  * Uses SHA-256 hash of URL for unique file identification
+  * Added cache statistics API (`getCacheStats()`, `getCacheSize()`, `getCacheFileCount()`)
+  * Provides manual cache management methods (`clearCache()`, `removeCachedPdf()`)
+  * Cache location: `getTemporaryDirectory()/pdf_cache/`
+  * Added `path_provider: ^2.1.5` and `crypto: ^3.0.6` dependencies
+* **New Feature**: Automatic retry mechanism
+  * Added configurable retry system for failed PDF downloads
+  * New `maxRetries` option in `FloatingPdfViewerOptions` (default: 3)
+  * New `retryDelay` option in `FloatingPdfViewerOptions` (default: 2 seconds)
+  * Automatically retries download on network failures
+  * Silent background retries without user intervention
+  * Shows error only after all retry attempts are exhausted
+  * Perfect for unstable network conditions in dealerships
+* **Enhancement**: Improved PDF download system
+  * Created dedicated `PdfDownloader` class with cache support
+  * Added `getPdfFileWithCache()` method that checks cache before downloading
+  * Changed from memory-based (Uint8List) to file-based (File) PDF handling
+  * Exported `PdfCacheManager` and `PdfDownloader` as public API
+* **Performance**: Significantly improved memory usage and loading times
+  * PDFs stored on disk instead of RAM (saves hundreds of MBs for large PDFs)
+  * Instant loading for cached PDFs (no re-download needed)
+  * Reduced memory footprint with optimized state management
+* **Documentation**: Comprehensive cache system documentation
+  * Added detailed cache management section in README
+  * Included cache statistics examples and UI implementation
+  * Documented retry mechanism configuration and best practices
+  * Updated package structure to show new cache-related files
+
 ## 0.1.6
 
 * **BREAKING CHANGE**: Migrated from WebView to native PDF rendering

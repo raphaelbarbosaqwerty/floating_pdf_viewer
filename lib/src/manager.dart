@@ -33,11 +33,9 @@ class FloatingPdfViewerManager {
     final viewerOptions = options ?? const FloatingPdfViewerOptions();
 
     final centeredOptions = FloatingPdfViewerOptions(
-      initialLeft:
-          viewerOptions.initialLeft ??
+      initialLeft: viewerOptions.initialLeft ??
           (screenSize.width - viewerOptions.initialWidth) / 2,
-      initialTop:
-          viewerOptions.initialTop ??
+      initialTop: viewerOptions.initialTop ??
           (screenSize.height - viewerOptions.initialHeight) / 2,
       initialWidth: viewerOptions.initialWidth,
       initialHeight: viewerOptions.initialHeight,
@@ -47,6 +45,8 @@ class FloatingPdfViewerManager {
       minHeight: viewerOptions.minHeight,
       maxWidth: viewerOptions.maxWidth,
       maxHeight: viewerOptions.maxHeight,
+      maxRetries: viewerOptions.maxRetries,
+      retryDelay: viewerOptions.retryDelay,
     );
 
     _overlayEntry = OverlayEntry(
