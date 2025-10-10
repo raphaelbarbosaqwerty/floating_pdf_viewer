@@ -37,6 +37,12 @@ class FloatingPdfViewerOptions {
   /// Maximum height for resizing
   final double maxHeight;
 
+  /// Maximum number of automatic retry attempts when loading fails
+  final int maxRetries;
+
+  /// Delay between retry attempts
+  final Duration retryDelay;
+
   const FloatingPdfViewerOptions({
     this.initialLeft,
     this.initialTop,
@@ -48,6 +54,8 @@ class FloatingPdfViewerOptions {
     this.minHeight = 250.0,
     this.maxWidth = 600.0,
     this.maxHeight = 800.0,
+    this.maxRetries = 3,
+    this.retryDelay = const Duration(seconds: 2),
   });
 
   /// Creates a copy of this [FloatingPdfViewerOptions] with the given fields replaced with new values.
@@ -62,6 +70,8 @@ class FloatingPdfViewerOptions {
     double? minHeight,
     double? maxWidth,
     double? maxHeight,
+    int? maxRetries,
+    Duration? retryDelay,
   }) {
     return FloatingPdfViewerOptions(
       initialLeft: initialLeft ?? this.initialLeft,
@@ -74,6 +84,8 @@ class FloatingPdfViewerOptions {
       minHeight: minHeight ?? this.minHeight,
       maxWidth: maxWidth ?? this.maxWidth,
       maxHeight: maxHeight ?? this.maxHeight,
+      maxRetries: maxRetries ?? this.maxRetries,
+      retryDelay: retryDelay ?? this.retryDelay,
     );
   }
 
@@ -90,7 +102,9 @@ class FloatingPdfViewerOptions {
         other.minWidth == minWidth &&
         other.minHeight == minHeight &&
         other.maxWidth == maxWidth &&
-        other.maxHeight == maxHeight;
+        other.maxHeight == maxHeight &&
+        other.maxRetries == maxRetries &&
+        other.retryDelay == retryDelay;
   }
 
   @override
@@ -106,6 +120,8 @@ class FloatingPdfViewerOptions {
       minHeight,
       maxWidth,
       maxHeight,
+      maxRetries,
+      retryDelay,
     );
   }
 
@@ -121,7 +137,9 @@ class FloatingPdfViewerOptions {
         'minWidth: $minWidth, '
         'minHeight: $minHeight, '
         'maxWidth: $maxWidth, '
-        'maxHeight: $maxHeight'
+        'maxHeight: $maxHeight, '
+        'maxRetries: $maxRetries, '
+        'retryDelay: $retryDelay'
         ')';
   }
 }

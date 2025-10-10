@@ -52,6 +52,7 @@ class _FloatingPdfViewerState extends State<FloatingPdfViewer> {
 
   double _downloadProgress = 0.0;
   String? _errorMessage;
+  int _retryCount = 0;
 
   @override
   void initState() {
@@ -96,14 +97,27 @@ class _FloatingPdfViewerState extends State<FloatingPdfViewer> {
 
       if (mounted) {
         _isLoadingNotifier.value = false;
+        _retryCount = 0; // Reset retry count on success
       }
     } catch (e) {
-      debugPrint('❌ Error loading PDF: $e');
+      if (!mounted) return;
 
-      if (mounted) {
-        _isLoadingNotifier.value = false;
-        _hasErrorNotifier.value = true;
-        _errorMessage = e.toString();
+      // Retry logic
+      if (_retryCount < widget.options.maxRetries) {
+        _retryCount++;
+
+        await Future.delayed(widget.options.retryDelay);
+
+        if (mounted) {
+          await _loadPdf();
+        }
+      } else {
+        // All retries exhausted, show error
+        if (mounted) {
+          _isLoadingNotifier.value = false;
+          _hasErrorNotifier.value = true;
+          _errorMessage = e.toString();
+        }
       }
     }
   }
@@ -112,6 +126,7 @@ class _FloatingPdfViewerState extends State<FloatingPdfViewer> {
     _pdfController?.dispose();
     _pdfController = null;
     _pdfBytes = null;
+    _retryCount = 0; // Reset retry count on manual reload
     await _loadPdf();
   }
 

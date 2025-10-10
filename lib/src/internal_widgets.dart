@@ -366,7 +366,15 @@ class PdfContent extends StatelessWidget {
                   child: PdfViewPinch(
                     controller: pdfController!,
                     padding: 0,
-                    backgroundDecoration: BoxDecoration(color: Colors.red),
+                    builders: PdfViewPinchBuilders<DefaultBuilderOptions>(
+                      pageLoaderBuilder: (context) {
+                        return CircularProgressIndicator(
+                          value: downloadProgress > 0 ? downloadProgress : null,
+                          color: Colors.white,
+                        );
+                      },
+                      options: DefaultBuilderOptions(),
+                    ),
                   ),
                 ),
               ),
